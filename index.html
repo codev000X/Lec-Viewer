@@ -561,14 +561,18 @@ const Reader = {
       this.totalPages  = total;
       const page   = await pdfDoc.getPage(this.currentPage);
       const canvas = document.getElementById('reader-canvas');
-
-      // In fullscreen use viewport width, otherwise use container width
-      const availWidth = this.isFullscreen
-        ? (window.innerWidth || screen.width)
-        : (canvas.parentElement.clientWidth || 800);
-
       const vp0    = page.getViewport({ scale: 1 });
-      const scale  = availWidth / vp0.width;
+
+      let scale;
+      if (this.isFullscreen) {
+        // Fit to screen — scale by whichever dimension is the constraint
+        const scaleW = window.innerWidth  / vp0.width;
+        const scaleH = window.innerHeight / vp0.height;
+        scale = Math.min(scaleW, scaleH);
+      } else {
+        scale = (canvas.parentElement.clientWidth || 800) / vp0.width;
+      }
+
       const vp     = page.getViewport({ scale });
       canvas.width = vp.width; canvas.height = vp.height;
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
