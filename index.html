@@ -125,7 +125,7 @@
     .drawer-handle{width:44px;height:5px;border-radius:99px;background:var(--text-muted);opacity:0.35;margin:12px auto 0;flex-shrink:0;}
     .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0;border-bottom:1px solid var(--border-glass);}
     .drawer-header h3{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--text-primary);flex:1;}
-    .drawer-body{flex:1;overflow-y:auto;padding:20px;}
+    .drawer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;}
     .drawer-nav{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-glass);}
 
     /* ADMIN */
@@ -678,21 +678,28 @@ const Drawer = {
 
   async _renderDrawerPage(n) {
     if (!this._pdfDoc) return;
-    const page   = await this._pdfDoc.getPage(n);
-    const canvas = document.getElementById('drawer-canvas');
+    const page      = await this._pdfDoc.getPage(n);
+    const canvas    = document.getElementById('drawer-canvas');
     if (!canvas) return;
-    const vp0    = page.getViewport({ scale: 1 });
-    const availW = canvas.parentElement.clientWidth || (window.innerWidth * 0.9);
-    const scale  = availW / vp0.width;
-    const vp     = page.getViewport({ scale });
-    canvas.width = vp.width; canvas.height = vp.height;
+    const vp0       = page.getViewport({ scale: 1 });
+    // Fit within drawer — constrain by both width and available height
+    const availW    = canvas.parentElement.clientWidth || 400;
+    const availH    = window.innerHeight * 0.55; // max 55% of screen height
+    const scaleW    = availW / vp0.width;
+    const scaleH    = availH / vp0.height;
+    const scale     = Math.min(scaleW, scaleH);
+    const vp        = page.getViewport({ scale });
+    canvas.width    = vp.width;
+    canvas.height   = vp.height;
+    canvas.style.width  = vp.width + 'px';
+    canvas.style.height = vp.height + 'px';
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     const counter = document.getElementById('drawer-counter');
     const prev    = document.getElementById('drawer-prev');
     const next    = document.getElementById('drawer-next');
     if (counter) counter.textContent = n + ' / ' + this.totalPages;
-    if (prev)    prev.disabled  = n <= 1;
-    if (next)    next.disabled  = n >= this.totalPages;
+    if (prev)    prev.disabled = n <= 1;
+    if (next)    next.disabled = n >= this.totalPages;
   },
 
   async prevPage() { if (this.drawerPage>1) { this.drawerPage--; await this._renderDrawerPage(this.drawerPage); } },
