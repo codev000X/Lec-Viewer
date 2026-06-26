@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Quran Lecture Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,7 +89,7 @@
     .reader-topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
     .reader-title{flex:1;font-family:var(--font-display);font-size:clamp(15px,3vw,20px);font-weight:600;color:var(--text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .slide-counter{font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--accent-soft);padding:5px 12px;border-radius:var(--radius-pill);white-space:nowrap;}
-    .canvas-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;background:#FAF8F4;border:1px solid var(--border-glass);box-shadow:var(--shadow-md);margin-bottom:16px;}
+    .canvas-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;background:#FAF8F4;border:1px solid var(--border-glass);box-shadow:var(--shadow-md);margin-bottom:16px;touch-action:pinch-zoom;}
     #reader-canvas{display:block;width:100%;height:auto;}
     .canvas-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(248,246,242,0.92);backdrop-filter:blur(4px);z-index:2;}
     .canvas-loading p{font-size:13px;color:var(--text-muted);margin-top:4px;}
@@ -562,6 +562,7 @@ const Reader = {
       this.totalPages  = total;
       const page   = await pdfDoc.getPage(this.currentPage);
       const canvas = document.getElementById('reader-canvas');
+      const dpr    = window.devicePixelRatio || 1;
       const vp0    = page.getViewport({ scale: 1 });
 
       let scale;
@@ -573,8 +574,12 @@ const Reader = {
         scale = (canvas.parentElement.clientWidth || 800) / vp0.width;
       }
 
-      const vp     = page.getViewport({ scale });
-      canvas.width = vp.width; canvas.height = vp.height;
+      const vp = page.getViewport({ scale: scale * dpr });
+      // Render at high DPI, display at CSS size
+      canvas.width  = vp.width;
+      canvas.height = vp.height;
+      canvas.style.width  = (vp.width  / dpr) + 'px';
+      canvas.style.height = (vp.height / dpr) + 'px';
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
       document.getElementById('canvas-loading').style.display = 'none';
       this._updateCounters(); this._renderChips();
@@ -681,15 +686,18 @@ const Drawer = {
     const page   = await this._pdfDoc.getPage(n);
     const canvas = document.getElementById('drawer-canvas');
     if (!canvas) return;
+    const dpr    = window.devicePixelRatio || 1;
     const vp0    = page.getViewport({ scale: 1 });
     const availW = canvas.parentElement.clientWidth || 400;
     const availH = window.innerHeight * 0.55;
     const scaleW = availW / vp0.width;
     const scaleH = availH / vp0.height;
     const scale  = Math.min(scaleW, scaleH);
-    const vp     = page.getViewport({ scale });
+    const vp     = page.getViewport({ scale: scale * dpr });
     canvas.width  = vp.width;
     canvas.height = vp.height;
+    canvas.style.width  = (vp.width  / dpr) + 'px';
+    canvas.style.height = (vp.height / dpr) + 'px';
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     const counter = document.getElementById('drawer-counter');
     const prev    = document.getElementById('drawer-prev');
