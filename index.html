@@ -565,9 +565,8 @@ const Reader = {
 
       let scale;
       if (this.isFullscreen) {
-        const scaleW = (window.innerWidth  * 0.98) / vp0.width;
-        const scaleH = (window.innerHeight * 0.98) / vp0.height;
-        scale = Math.min(scaleW, scaleH);
+        // Fill full width — PDF is wider than tall so width is the constraint
+        scale = (window.innerWidth * 0.99) / vp0.width;
       } else {
         scale = (canvas.parentElement.clientWidth || 800) / vp0.width;
       }
