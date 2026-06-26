@@ -106,8 +106,9 @@
     .refs-none{font-size:12px;color:var(--text-muted);font-style:italic;padding:4px 0;}
     #reader-view:-webkit-full-screen,#reader-view:-moz-full-screen,#reader-view:fullscreen{background:#1a1814;}
     .fullscreen-mode .reader-topbar,.fullscreen-mode .nav-bar,.fullscreen-mode .refs-section{display:none!important;}
-    .fullscreen-mode .canvas-wrap{margin:0;border-radius:0;border:none;box-shadow:none;}
-    .fullscreen-mode #reader-view{padding:0;max-width:100%;}
+    .fullscreen-mode .canvas-wrap { margin: 0; border-radius: 0; border: none; box-shadow: none; background: #1a1814; }
+    .fullscreen-mode #reader-view { padding: 0; max-width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+    .fullscreen-mode #reader-canvas { width: 100% !important; height: auto !important; max-height: 100vh; object-fit: contain; }
     .fullscreen-controls{display:none;position:fixed;inset:0;z-index:100;pointer-events:none;}
     .fullscreen-mode .fullscreen-controls{display:block;}
     .fs-overlay-bar{position:absolute;bottom:0;left:0;right:0;padding:16px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.5));display:flex;align-items:center;justify-content:space-between;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
@@ -616,8 +617,8 @@ const Reader = {
   }
 };
 
-document.addEventListener('fullscreenchange',       () => { const f=!!document.fullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; });
-document.addEventListener('webkitfullscreenchange', () => { const f=!!document.webkitFullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; });
+document.addEventListener('fullscreenchange',       () => { const f=!!document.fullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
+document.addEventListener('webkitfullscreenchange', () => { const f=!!document.webkitFullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
 document.addEventListener('keydown', e => {
   if (!document.getElementById('reader-view').classList.contains('active')) return;
   if (e.key==='ArrowRight'||e.key==='ArrowDown') Reader.nextPage();
