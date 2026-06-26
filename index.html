@@ -110,12 +110,18 @@
     .fullscreen-mode #reader-view > div { max-width:100vw !important; margin:0 !important; padding:0 !important; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
     .fullscreen-mode .canvas-wrap { margin:0; border:none; box-shadow:none; border-radius:0; background:transparent; position:static; }
     .fullscreen-mode #reader-canvas { display:block; max-width:100vw; max-height:100vh; }
-    .fullscreen-controls{display:none;position:fixed;inset:0;z-index:100;pointer-events:none;}
+    .fullscreen-controls{display:none;position:fixed;inset:0;z-index:1000;pointer-events:none;}
     .fullscreen-mode .fullscreen-controls{display:block;}
-    .fs-overlay-bar{position:absolute;bottom:0;left:0;right:0;padding:16px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.5));display:flex;align-items:center;justify-content:space-between;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
-    .fullscreen-mode:hover .fs-overlay-bar{opacity:1;}
-    .fs-page-label{font-size:13px;color:rgba(255,255,255,0.8);font-weight:500;}
-    .fs-exit-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;border-radius:var(--radius-pill);padding:7px 16px;font-size:12px;font-weight:500;cursor:pointer;}
+    .fs-overlay-bar{position:absolute;bottom:0;left:0;right:0;padding:16px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.6));display:flex;align-items:center;justify-content:space-between;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
+    .fullscreen-mode .fs-overlay-bar{opacity:1;}
+    .fs-page-label{font-size:13px;color:rgba(255,255,255,0.9);font-weight:500;}
+    .fs-exit-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:var(--radius-pill);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
+    /* Pinch zoom container */
+    .zoom-container{transform-origin:center center;transition:transform 0.1s ease-out;will-change:transform;}
+    /* Drawer fullscreen */
+    .drawer-overlay.drawer-fs{align-items:stretch;}
+    .drawer-overlay.drawer-fs .drawer-sheet{max-height:100vh;border-radius:0;height:100vh;}
+    .drawer-overlay.drawer-fs .drawer-body{display:flex;align-items:center;justify-content:center;}
 
     /* DRAWER */
     .drawer-overlay{position:fixed;inset:0;z-index:500;background:rgba(44,40,37,0.45);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 0.3s;display:flex;align-items:flex-end;}
@@ -216,7 +222,9 @@
       <span class="slide-counter" id="reader-counter">1 / 1</span>
     </div>
     <div class="canvas-wrap" id="canvas-wrap">
-      <canvas id="reader-canvas" style="display:none;width:100%;height:auto;"></canvas>
+      <div class="zoom-container" id="reader-zoom">
+        <canvas id="reader-canvas" style="display:none;width:100%;height:auto;"></canvas>
+      </div>
       <button class="fs-btn" onclick="Reader.enterFullscreen()" title="Fullscreen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
       </button>
@@ -298,7 +306,10 @@
     <div class="drawer-handle"></div>
     <div class="drawer-header">
       <h3 id="drawer-title">Reference</h3>
-      <button class="btn-icon" onclick="Drawer.close()">
+      <button class="btn-icon" onclick="Drawer.toggleFullscreen()" id="drawer-fs-btn" title="Expand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      </button>
+      <button class="btn-icon" onclick="Drawer.close()" style="margin-left:8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -636,6 +647,107 @@ const Reader = {
 
 document.addEventListener('fullscreenchange',       () => { const f=!!document.fullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
 document.addEventListener('webkitfullscreenchange', () => { const f=!!document.webkitFullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
+
+// ── PINCH ZOOM (reader canvas) ──
+const PinchZoom = {
+  _el:       null,
+  _scale:    1,
+  _minScale: 1,
+  _maxScale: 5,
+  _startDist: 0,
+  _startScale: 1,
+  _posX: 0, _posY: 0,
+  _startX: 0, _startY: 0,
+  _fingers: 0,
+
+  init(el) {
+    this._el = el;
+    el.addEventListener('touchstart',  e => this._onStart(e),  { passive: false });
+    el.addEventListener('touchmove',   e => this._onMove(e),   { passive: false });
+    el.addEventListener('touchend',    e => this._onEnd(e),    { passive: true });
+  },
+
+  reset() {
+    this._scale = 1; this._posX = 0; this._posY = 0;
+    if (this._el) this._el.style.transform = '';
+  },
+
+  _dist(t) {
+    return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  },
+
+  _onStart(e) {
+    this._fingers = e.touches.length;
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      this._startDist  = this._dist(e.touches);
+      this._startScale = this._scale;
+    } else if (e.touches.length === 1 && this._scale > 1) {
+      this._startX = e.touches[0].clientX - this._posX;
+      this._startY = e.touches[0].clientY - this._posY;
+    }
+  },
+
+  _onMove(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist  = this._dist(e.touches);
+      this._scale = Math.min(this._maxScale, Math.max(this._minScale, this._startScale * (dist / this._startDist)));
+      this._apply();
+    } else if (e.touches.length === 1 && this._scale > 1) {
+      e.preventDefault();
+      this._posX = e.touches[0].clientX - this._startX;
+      this._posY = e.touches[0].clientY - this._startY;
+      this._apply();
+    }
+  },
+
+  _onEnd(e) {
+    if (this._scale <= 1.05) { this._scale = 1; this._posX = 0; this._posY = 0; this._apply(); }
+  },
+
+  _apply() {
+    if (!this._el) return;
+    this._el.style.transform = `translate(${this._posX}px, ${this._posY}px) scale(${this._scale})`;
+  }
+};
+PinchZoom.init(document.getElementById('reader-zoom'));
+
+// Reset zoom on page change
+const _origRenderPage = Reader._renderPage.bind(Reader);
+Reader._renderPage = async function(n) {
+  PinchZoom.reset();
+  await _origRenderPage(n);
+};
+
+// ── DRAWER FULLSCREEN & PINCH ZOOM ──
+const DrawerPinch = {
+  _el: null, _scale:1, _startDist:0, _startScale:1, _posX:0, _posY:0, _startX:0, _startY:0,
+
+  init(el) {
+    this._el = el;
+    el.addEventListener('touchstart', e => this._onStart(e), { passive: false });
+    el.addEventListener('touchmove',  e => this._onMove(e),  { passive: false });
+    el.addEventListener('touchend',   e => this._onEnd(e),   { passive: true });
+  },
+
+  reset() { this._scale=1; this._posX=0; this._posY=0; if(this._el) this._el.style.transform=''; },
+
+  _dist(t) { return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); },
+
+  _onStart(e) {
+    if (e.touches.length===2) { e.preventDefault(); this._startDist=this._dist(e.touches); this._startScale=this._scale; }
+    else if (e.touches.length===1&&this._scale>1) { this._startX=e.touches[0].clientX-this._posX; this._startY=e.touches[0].clientY-this._posY; }
+  },
+  _onMove(e) {
+    if (e.touches.length===2) { e.preventDefault(); this._scale=Math.min(5,Math.max(1,this._startScale*(this._dist(e.touches)/this._startDist))); this._apply(); }
+    else if (e.touches.length===1&&this._scale>1) { e.preventDefault(); this._posX=e.touches[0].clientX-this._startX; this._posY=e.touches[0].clientY-this._startY; this._apply(); }
+  },
+  _onEnd(e) { if(this._scale<=1.05){this._scale=1;this._posX=0;this._posY=0;this._apply();} },
+  _apply() { if(this._el) this._el.style.transform=`translate(${this._posX}px,${this._posY}px) scale(${this._scale})`; }
+};
+
+// Keyboard + swipe
 document.addEventListener('keydown', e => {
   if (!document.getElementById('reader-view').classList.contains('active')) return;
   if (e.key==='ArrowRight'||e.key==='ArrowDown') Reader.nextPage();
@@ -643,8 +755,8 @@ document.addEventListener('keydown', e => {
   if (e.key==='Escape' && Reader.isFullscreen)   Reader.exitFullscreen();
 });
 const canvasWrap = document.getElementById('canvas-wrap');
-canvasWrap.addEventListener('touchstart', e => Reader.onTouchStart(e), { passive:true });
-canvasWrap.addEventListener('touchend',   e => Reader.onTouchEnd(e),   { passive:true });
+canvasWrap.addEventListener('touchstart', e => { if(e.touches.length===1) Reader.onTouchStart(e); }, { passive:true });
+canvasWrap.addEventListener('touchend',   e => { if(PinchZoom._scale<=1.05) Reader.onTouchEnd(e); }, { passive:true });
 
 // ── DRAWER ──
 const Drawer = {
@@ -668,7 +780,9 @@ const Drawer = {
 
       document.getElementById('drawer-body').innerHTML = `
         <div style="border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-glass);margin-bottom:4px;display:flex;justify-content:center;background:#FAF8F4;">
-          <canvas id="drawer-canvas" style="display:block;height:auto;"></canvas>
+          <div class="zoom-container" id="drawer-zoom">
+            <canvas id="drawer-canvas" style="display:block;height:auto;"></canvas>
+          </div>
         </div>
         <div class="drawer-nav">
           <button class="btn btn-ghost" id="drawer-prev" onclick="Drawer.prevPage()">← Prev</button>
@@ -676,6 +790,9 @@ const Drawer = {
           <button class="btn btn-ghost" id="drawer-next" onclick="Drawer.nextPage()">Next →</button>
         </div>`;
       await this._renderDrawerPage(this.drawerPage);
+      // Init pinch zoom on drawer canvas
+      const dzoom = document.getElementById('drawer-zoom');
+      if (dzoom) DrawerPinch.init(dzoom);
     } catch(e) {
       document.getElementById('drawer-body').innerHTML = `<div class="canvas-error"><div class="err-icon">⚠️</div><p>Could not load reference.<br><small>${e.message}</small></p></div>`;
     }
@@ -707,8 +824,24 @@ const Drawer = {
     if (next)    next.disabled = n >= this.totalPages;
   },
 
-  async prevPage() { if (this.drawerPage>1) { this.drawerPage--; await this._renderDrawerPage(this.drawerPage); } },
-  async nextPage() { if (this.drawerPage<this.totalPages) { this.drawerPage++; await this._renderDrawerPage(this.drawerPage); } },
+  toggleFullscreen() {
+    const overlay = document.getElementById('drawer-overlay');
+    const isFs    = overlay.classList.contains('drawer-fs');
+    overlay.classList.toggle('drawer-fs', !isFs);
+    // Update expand button icon
+    const btn = document.getElementById('drawer-fs-btn');
+    if (!isFs) {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
+      btn.title = 'Collapse';
+    } else {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
+      btn.title = 'Expand';
+    }
+    // Re-render at new size
+    setTimeout(() => { if (this._pdfDoc) this._renderDrawerPage(this.drawerPage); }, 350);
+  },
+  async prevPage() { if (this.drawerPage>1) { this.drawerPage--; DrawerPinch.reset(); await this._renderDrawerPage(this.drawerPage); } },
+  async nextPage() { if (this.drawerPage<this.totalPages) { this.drawerPage++; DrawerPinch.reset(); await this._renderDrawerPage(this.drawerPage); } },
 
   async _loadImage(ref) {
     try {
@@ -720,9 +853,13 @@ const Drawer = {
   },
 
   close() {
-    document.getElementById('drawer-overlay').classList.remove('open');
+    const overlay = document.getElementById('drawer-overlay');
+    overlay.classList.remove('open','drawer-fs');
     document.body.style.overflow = '';
     this._pdfDoc=null; this.drawerPage=1; this.totalPages=1;
+    DrawerPinch.reset();
+    const btn = document.getElementById('drawer-fs-btn');
+    if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
 
