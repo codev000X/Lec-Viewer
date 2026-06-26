@@ -645,26 +645,49 @@ const Reader = {
   }
 };
 
-document.addEventListener('fullscreenchange',       () => { const f=!!document.fullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
-document.addEventListener('webkitfullscreenchange', () => { const f=!!document.webkitFullscreenElement; document.body.classList.toggle('fullscreen-mode',f); Reader.isFullscreen=f; if (Reader.pres) setTimeout(()=>Reader._renderPage(Reader.currentPage),100); });
+document.addEventListener('fullscreenchange',       _onFsChange);
+document.addEventListener('webkitfullscreenchange', _onFsChange);
+function _onFsChange() {
+  const f = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  document.body.classList.toggle('fullscreen-mode', f);
+  Reader.isFullscreen = f;
+  if (f) {
+    // Entered fullscreen — re-render at full size, enable zoom
+    setTimeout(() => { if (Reader.pres) Reader._renderPage(Reader.currentPage); }, 100);
+    Zoom.attach(document.getElementById('reader-zoom'));
+  } else {
+    // Exited fullscreen — re-render at normal size, disable zoom
+    Zoom.detach();
+    setTimeout(() => { if (Reader.pres) Reader._renderPage(Reader.currentPage); }, 100);
+  }
+}
 
-// ── PINCH ZOOM (reader canvas) ──
-const PinchZoom = {
-  _el:       null,
-  _scale:    1,
-  _minScale: 1,
-  _maxScale: 5,
-  _startDist: 0,
-  _startScale: 1,
-  _posX: 0, _posY: 0,
-  _startX: 0, _startY: 0,
-  _fingers: 0,
+// ── ZOOM MODULE (fullscreen only — mobile pinch + desktop Ctrl+scroll/keys) ──
+const Zoom = {
+  _el: null, _scale: 1, _posX: 0, _posY: 0,
+  _startDist: 0, _startScale: 1, _startX: 0, _startY: 0,
+  _bound: {},
 
-  init(el) {
-    this._el = el;
-    el.addEventListener('touchstart',  e => this._onStart(e),  { passive: false });
-    el.addEventListener('touchmove',   e => this._onMove(e),   { passive: false });
-    el.addEventListener('touchend',    e => this._onEnd(e),    { passive: true });
+  attach(el) {
+    this._el = el; this._scale = 1; this._posX = 0; this._posY = 0;
+    this._bound.ts  = e => this._onTouchStart(e);
+    this._bound.tm  = e => this._onTouchMove(e);
+    this._bound.te  = e => this._onTouchEnd(e);
+    this._bound.wh  = e => this._onWheel(e);
+    el.addEventListener('touchstart', this._bound.ts, { passive: false });
+    el.addEventListener('touchmove',  this._bound.tm, { passive: false });
+    el.addEventListener('touchend',   this._bound.te, { passive: true  });
+    window.addEventListener('wheel',  this._bound.wh, { passive: false });
+  },
+
+  detach() {
+    if (!this._el) return;
+    this._el.removeEventListener('touchstart', this._bound.ts);
+    this._el.removeEventListener('touchmove',  this._bound.tm);
+    this._el.removeEventListener('touchend',   this._bound.te);
+    window.removeEventListener('wheel', this._bound.wh);
+    this.reset();
+    this._el = null;
   },
 
   reset() {
@@ -672,12 +695,9 @@ const PinchZoom = {
     if (this._el) this._el.style.transform = '';
   },
 
-  _dist(t) {
-    return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
-  },
+  _dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); },
 
-  _onStart(e) {
-    this._fingers = e.touches.length;
+  _onTouchStart(e) {
     if (e.touches.length === 2) {
       e.preventDefault();
       this._startDist  = this._dist(e.touches);
@@ -688,11 +708,10 @@ const PinchZoom = {
     }
   },
 
-  _onMove(e) {
+  _onTouchMove(e) {
     if (e.touches.length === 2) {
       e.preventDefault();
-      const dist  = this._dist(e.touches);
-      this._scale = Math.min(this._maxScale, Math.max(this._minScale, this._startScale * (dist / this._startDist)));
+      this._scale = Math.min(5, Math.max(1, this._startScale * (this._dist(e.touches) / this._startDist)));
       this._apply();
     } else if (e.touches.length === 1 && this._scale > 1) {
       e.preventDefault();
@@ -702,8 +721,18 @@ const PinchZoom = {
     }
   },
 
-  _onEnd(e) {
+  _onTouchEnd(e) {
     if (this._scale <= 1.05) { this._scale = 1; this._posX = 0; this._posY = 0; this._apply(); }
+  },
+
+  _onWheel(e) {
+    if (!Reader.isFullscreen) return;
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const delta   = e.deltaY > 0 ? 0.9 : 1.1;
+    this._scale   = Math.min(5, Math.max(1, this._scale * delta));
+    if (this._scale <= 1.05) { this._scale = 1; this._posX = 0; this._posY = 0; }
+    this._apply();
   },
 
   _apply() {
@@ -711,35 +740,51 @@ const PinchZoom = {
     this._el.style.transform = `translate(${this._posX}px, ${this._posY}px) scale(${this._scale})`;
   }
 };
-PinchZoom.init(document.getElementById('reader-zoom'));
 
-// Reset zoom on page change
-const _origRenderPage = Reader._renderPage.bind(Reader);
-Reader._renderPage = async function(n) {
-  PinchZoom.reset();
-  await _origRenderPage(n);
-};
+// Desktop Ctrl+/- zoom in fullscreen
+document.addEventListener('keydown', e => {
+  const readerActive = document.getElementById('reader-view').classList.contains('active');
+  if (!readerActive) return;
 
-// ── DRAWER FULLSCREEN & PINCH ZOOM ──
-const DrawerPinch = {
-  _el: null, _scale:1, _startDist:0, _startScale:1, _posX:0, _posY:0, _startX:0, _startY:0,
+  if (Reader.isFullscreen && e.ctrlKey) {
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); Zoom._scale = Math.min(5, Zoom._scale * 1.15); Zoom._apply(); return; }
+    if (e.key === '-')                  { e.preventDefault(); Zoom._scale = Math.max(1, Zoom._scale * 0.87); if(Zoom._scale<=1.05){Zoom._scale=1;Zoom._posX=0;Zoom._posY=0;} Zoom._apply(); return; }
+    if (e.key === '0')                  { e.preventDefault(); Zoom.reset(); return; }
+  }
 
-  init(el) {
-    this._el = el;
-    el.addEventListener('touchstart', e => this._onStart(e), { passive: false });
-    el.addEventListener('touchmove',  e => this._onMove(e),  { passive: false });
-    el.addEventListener('touchend',   e => this._onEnd(e),   { passive: true });
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') { if(Zoom._scale<=1) Reader.nextPage(); }
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   { if(Zoom._scale<=1) Reader.prevPage(); }
+  if (e.key==='Escape') {
+    if (Reader.isFullscreen) Reader.exitFullscreen();
+  }
+});
+
+// Swipe (only when not zoomed)
+const canvasWrap = document.getElementById('canvas-wrap');
+canvasWrap.addEventListener('touchstart', e => { if(e.touches.length===1 && Zoom._scale<=1) Reader.onTouchStart(e); }, { passive:true });
+canvasWrap.addEventListener('touchend',   e => { if(Zoom._scale<=1) Reader.onTouchEnd(e); }, { passive:true });
+
+// ── DRAWER ZOOM (only when expanded to fullscreen) ──
+const DrawerZoom = {
+  _el: null, _scale:1, _posX:0, _posY:0, _startDist:0, _startScale:1, _startX:0, _startY:0,
+
+  attach(el) {
+    this._el = el; this._scale=1; this._posX=0; this._posY=0;
+    el.addEventListener('touchstart', e => this._onStart(e), { passive:false });
+    el.addEventListener('touchmove',  e => this._onMove(e),  { passive:false });
+    el.addEventListener('touchend',   e => this._onEnd(e),   { passive:true  });
   },
 
   reset() { this._scale=1; this._posX=0; this._posY=0; if(this._el) this._el.style.transform=''; },
-
   _dist(t) { return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); },
 
   _onStart(e) {
+    if (!Drawer._isFs) return;
     if (e.touches.length===2) { e.preventDefault(); this._startDist=this._dist(e.touches); this._startScale=this._scale; }
     else if (e.touches.length===1&&this._scale>1) { this._startX=e.touches[0].clientX-this._posX; this._startY=e.touches[0].clientY-this._posY; }
   },
   _onMove(e) {
+    if (!Drawer._isFs) return;
     if (e.touches.length===2) { e.preventDefault(); this._scale=Math.min(5,Math.max(1,this._startScale*(this._dist(e.touches)/this._startDist))); this._apply(); }
     else if (e.touches.length===1&&this._scale>1) { e.preventDefault(); this._posX=e.touches[0].clientX-this._startX; this._posY=e.touches[0].clientY-this._startY; this._apply(); }
   },
@@ -747,20 +792,9 @@ const DrawerPinch = {
   _apply() { if(this._el) this._el.style.transform=`translate(${this._posX}px,${this._posY}px) scale(${this._scale})`; }
 };
 
-// Keyboard + swipe
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('reader-view').classList.contains('active')) return;
-  if (e.key==='ArrowRight'||e.key==='ArrowDown') Reader.nextPage();
-  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   Reader.prevPage();
-  if (e.key==='Escape' && Reader.isFullscreen)   Reader.exitFullscreen();
-});
-const canvasWrap = document.getElementById('canvas-wrap');
-canvasWrap.addEventListener('touchstart', e => { if(e.touches.length===1) Reader.onTouchStart(e); }, { passive:true });
-canvasWrap.addEventListener('touchend',   e => { if(PinchZoom._scale<=1.05) Reader.onTouchEnd(e); }, { passive:true });
-
 // ── DRAWER ──
 const Drawer = {
-  _pdfDoc: null, drawerPage: 1, totalPages: 1,
+  _pdfDoc: null, drawerPage: 1, totalPages: 1, _isFs: false,
 
   open(ref) {
     document.getElementById('drawer-title').textContent = ref.label;
@@ -790,9 +824,8 @@ const Drawer = {
           <button class="btn btn-ghost" id="drawer-next" onclick="Drawer.nextPage()">Next →</button>
         </div>`;
       await this._renderDrawerPage(this.drawerPage);
-      // Init pinch zoom on drawer canvas
       const dzoom = document.getElementById('drawer-zoom');
-      if (dzoom) DrawerPinch.init(dzoom);
+      if (dzoom) DrawerZoom.attach(dzoom);
     } catch(e) {
       document.getElementById('drawer-body').innerHTML = `<div class="canvas-error"><div class="err-icon">⚠️</div><p>Could not load reference.<br><small>${e.message}</small></p></div>`;
     }
@@ -806,7 +839,8 @@ const Drawer = {
     const dpr    = window.devicePixelRatio || 1;
     const vp0    = page.getViewport({ scale: 1 });
     const availW = canvas.parentElement.clientWidth || 400;
-    const availH = window.innerHeight * 0.55;
+    // In fullscreen drawer mode use full screen height, else 55%
+    const availH = this._isFs ? window.innerHeight * 0.88 : window.innerHeight * 0.55;
     const scaleW = availW / vp0.width;
     const scaleH = availH / vp0.height;
     const scale  = Math.min(scaleW, scaleH);
@@ -826,22 +860,21 @@ const Drawer = {
 
   toggleFullscreen() {
     const overlay = document.getElementById('drawer-overlay');
-    const isFs    = overlay.classList.contains('drawer-fs');
-    overlay.classList.toggle('drawer-fs', !isFs);
-    // Update expand button icon
+    this._isFs    = !this._isFs;
+    overlay.classList.toggle('drawer-fs', this._isFs);
     const btn = document.getElementById('drawer-fs-btn');
-    if (!isFs) {
+    if (this._isFs) {
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
       btn.title = 'Collapse';
     } else {
+      DrawerZoom.reset();
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
       btn.title = 'Expand';
     }
-    // Re-render at new size
     setTimeout(() => { if (this._pdfDoc) this._renderDrawerPage(this.drawerPage); }, 350);
   },
-  async prevPage() { if (this.drawerPage>1) { this.drawerPage--; DrawerPinch.reset(); await this._renderDrawerPage(this.drawerPage); } },
-  async nextPage() { if (this.drawerPage<this.totalPages) { this.drawerPage++; DrawerPinch.reset(); await this._renderDrawerPage(this.drawerPage); } },
+  async prevPage() { if (this.drawerPage>1) { this.drawerPage--; DrawerZoom.reset(); await this._renderDrawerPage(this.drawerPage); } },
+  async nextPage() { if (this.drawerPage<this.totalPages) { this.drawerPage++; DrawerZoom.reset(); await this._renderDrawerPage(this.drawerPage); } },
 
   async _loadImage(ref) {
     try {
@@ -856,8 +889,8 @@ const Drawer = {
     const overlay = document.getElementById('drawer-overlay');
     overlay.classList.remove('open','drawer-fs');
     document.body.style.overflow = '';
-    this._pdfDoc=null; this.drawerPage=1; this.totalPages=1;
-    DrawerPinch.reset();
+    this._pdfDoc=null; this.drawerPage=1; this.totalPages=1; this._isFs=false;
+    DrawerZoom.reset();
     const btn = document.getElementById('drawer-fs-btn');
     if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
