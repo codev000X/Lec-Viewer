@@ -662,8 +662,8 @@ const Drawer = {
       this.drawerPage  = Math.max(1, Math.min(ref.target_page||1, this.totalPages));
 
       document.getElementById('drawer-body').innerHTML = `
-        <div style="border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-glass);margin-bottom:4px;">
-          <canvas id="drawer-canvas" style="display:block;width:100%;height:auto;"></canvas>
+        <div style="border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-glass);margin-bottom:4px;display:flex;justify-content:center;background:#FAF8F4;">
+          <canvas id="drawer-canvas" style="display:block;height:auto;"></canvas>
         </div>
         <div class="drawer-nav">
           <button class="btn btn-ghost" id="drawer-prev" onclick="Drawer.prevPage()">← Prev</button>
@@ -678,21 +678,18 @@ const Drawer = {
 
   async _renderDrawerPage(n) {
     if (!this._pdfDoc) return;
-    const page      = await this._pdfDoc.getPage(n);
-    const canvas    = document.getElementById('drawer-canvas');
+    const page   = await this._pdfDoc.getPage(n);
+    const canvas = document.getElementById('drawer-canvas');
     if (!canvas) return;
-    const vp0       = page.getViewport({ scale: 1 });
-    // Fit within drawer — constrain by both width and available height
-    const availW    = canvas.parentElement.clientWidth || 400;
-    const availH    = window.innerHeight * 0.55; // max 55% of screen height
-    const scaleW    = availW / vp0.width;
-    const scaleH    = availH / vp0.height;
-    const scale     = Math.min(scaleW, scaleH);
-    const vp        = page.getViewport({ scale });
-    canvas.width    = vp.width;
-    canvas.height   = vp.height;
-    canvas.style.width  = vp.width + 'px';
-    canvas.style.height = vp.height + 'px';
+    const vp0    = page.getViewport({ scale: 1 });
+    const availW = canvas.parentElement.clientWidth || 400;
+    const availH = window.innerHeight * 0.55;
+    const scaleW = availW / vp0.width;
+    const scaleH = availH / vp0.height;
+    const scale  = Math.min(scaleW, scaleH);
+    const vp     = page.getViewport({ scale });
+    canvas.width  = vp.width;
+    canvas.height = vp.height;
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     const counter = document.getElementById('drawer-counter');
     const prev    = document.getElementById('drawer-prev');
