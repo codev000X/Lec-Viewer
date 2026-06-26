@@ -681,11 +681,12 @@ const Drawer = {
     const page   = await this._pdfDoc.getPage(n);
     const canvas = document.getElementById('drawer-canvas');
     if (!canvas) return;
-    const vp0  = page.getViewport({ scale:1 });
-    const scale = (canvas.parentElement.clientWidth||400) / vp0.width;
-    const vp    = page.getViewport({ scale });
-    canvas.width=vp.width; canvas.height=vp.height;
-    await page.render({ canvasContext:canvas.getContext('2d'), viewport:vp }).promise;
+    const vp0    = page.getViewport({ scale: 1 });
+    const availW = canvas.parentElement.clientWidth || (window.innerWidth * 0.9);
+    const scale  = availW / vp0.width;
+    const vp     = page.getViewport({ scale });
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     const counter = document.getElementById('drawer-counter');
     const prev    = document.getElementById('drawer-prev');
     const next    = document.getElementById('drawer-next');
