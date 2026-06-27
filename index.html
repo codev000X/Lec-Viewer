@@ -1,379 +1,675 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quran Lecture Viewer</title>
+  <title>Quran Viewer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Scheherazade+New:wght@400;700&family=Inter:wght@300;400;500;600&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base:#F8F6F2; --bg-glass:rgba(255,252,248,0.75); --bg-glass-dark:rgba(242,237,230,0.92);
-      --border-glass:rgba(210,200,188,0.45); --accent:#7B6EA0; --accent-dark:#5F547E;
-      --accent-gold:#B5924C; --accent-soft:#EDE8F5; --text-primary:#2C2825;
-      --text-secondary:#7A6F66; --text-muted:#B0A89E;
-      --shadow-sm:0 2px 12px rgba(100,85,70,0.08); --shadow-md:0 4px 24px rgba(100,85,70,0.12);
-      --shadow-lg:0 8px 40px rgba(100,85,70,0.16);
-      --font-ui:'Inter',sans-serif; --font-display:'Cormorant Garamond',serif; --font-arabic:'Amiri',serif;
-      --radius-sm:8px; --radius-md:14px; --radius-lg:20px; --radius-pill:9999px;
+      --bg:           #FAF8F3;
+      --bg-card:      #FFFFFF;
+      --bg-glass:     rgba(255,253,248,0.9);
+      --border:       rgba(181,146,76,0.2);
+      --border-dark:  rgba(181,146,76,0.4);
+      --gold:         #B5924C;
+      --gold-light:   #F0E6CC;
+      --gold-dark:    #8A6830;
+      --green:        #2C5F2E;
+      --green-light:  #E8F0E8;
+      --text:         #1A1612;
+      --text-2:       #5A4E3A;
+      --text-3:       #9A8A6A;
+      --shadow:       0 2px 16px rgba(44,32,12,0.08);
+      --shadow-md:    0 4px 32px rgba(44,32,12,0.12);
+      --r:            12px;
+      --r-lg:         20px;
+      --font-arabic:  'Scheherazade New', 'Amiri', serif;
+      --font-urdu:    'Noto Nastaliq Urdu', 'Amiri', serif;
+      --font-ui:      'Inter', sans-serif;
+      --arabic-size:  28px;
     }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:var(--font-ui);background:var(--bg-base);color:var(--text-primary);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;}
-    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 10% 0%,rgba(123,110,160,0.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 90% 100%,rgba(181,146,76,0.06) 0%,transparent 60%);pointer-events:none;z-index:0;}
-    .view{display:none;position:relative;z-index:1;} .view.active{display:block;}
-    .glass{background:var(--bg-glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--border-glass);box-shadow:var(--shadow-sm);}
-    .glass-dark{background:var(--bg-glass-dark);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border-glass);box-shadow:var(--shadow-md);}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:var(--radius-sm);font-family:var(--font-ui);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.2s;white-space:nowrap;}
-    .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);}
-    .btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--border-glass);} .btn-ghost:hover{background:var(--accent-soft);}
-    .btn-icon{width:40px;height:40px;padding:0;border-radius:var(--radius-pill);background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;}
-    .btn-icon:hover{background:var(--accent-soft);color:var(--accent);} .btn-icon svg{width:16px;height:16px;}
-    .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border-glass);background:var(--bg-glass);color:var(--text-secondary);transition:all 0.2s;white-space:nowrap;}
-    .chip:hover,.chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-    .chip-gold{background:rgba(181,146,76,0.1);color:var(--accent-gold);border-color:rgba(181,146,76,0.3);font-family:var(--font-arabic);font-size:13px;}
-    .chip-gold:hover{background:var(--accent-gold);color:#fff;border-color:var(--accent-gold);}
-    @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-    .skeleton{background:linear-gradient(90deg,#ede8e0 25%,#e4ddd4 50%,#ede8e0 75%);background-size:400px 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:var(--radius-sm);}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:spin 0.8s linear infinite;}
-    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
-    .field label{font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;}
-    .field input,.field select,.field textarea{padding:11px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-glass);background:var(--bg-glass);color:var(--text-primary);font-family:var(--font-ui);font-size:14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;width:100%;}
-    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(123,110,160,0.12);}
-    .field textarea{resize:vertical;min-height:80px;} .field-hint{font-size:11px;color:var(--text-muted);}
-    #toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);padding:12px 20px;border-radius:var(--radius-pill);font-size:13px;font-weight:500;color:#fff;z-index:9999;opacity:0;pointer-events:none;transition:all 0.3s;white-space:nowrap;}
-    #toast.show{opacity:1;transform:translateX(-50%) translateY(0);} #toast.success{background:#5a8a5a;} #toast.error{background:#a05050;}
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      direction: ltr; /* UI is LTR, Arabic text is RTL per element */
+    }
 
-    /* LOADER */
-    #pres-loader{position:fixed;inset:0;z-index:800;background:var(--bg-base);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.35s ease;}
-    #pres-loader.visible{opacity:1;pointer-events:auto;} #pres-loader.hiding{opacity:0;}
-    .pres-loader-icon{font-family:var(--font-arabic);font-size:64px;color:var(--accent-gold);opacity:0.18;margin-bottom:32px;user-select:none;}
-    .pres-loader-title{font-family:var(--font-display);font-size:clamp(18px,4vw,26px);font-weight:600;color:var(--text-primary);text-align:center;max-width:320px;line-height:1.3;margin-bottom:8px;padding:0 24px;}
-    .pres-loader-sub{font-size:12px;color:var(--text-muted);margin-bottom:40px;letter-spacing:0.5px;}
-    .pres-loader-bar-wrap{width:220px;height:3px;background:var(--accent-soft);border-radius:99px;overflow:hidden;margin-bottom:16px;}
-    .pres-loader-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-gold));border-radius:99px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
-    .pres-loader-msg{font-size:12px;color:var(--text-muted);height:18px;text-align:center;}
+    /* ── VIEWS ── */
+    .view { display:none; } .view.active { display:block; }
 
-    /* GALLERY */
-    .gallery-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;}
-    .gallery-header h1{font-family:var(--font-display);font-size:clamp(26px,5vw,38px);font-weight:600;color:var(--accent);line-height:1.1;}
-    .gallery-header p{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;}
-    .search-bar{position:relative;margin-bottom:20px;}
-    .search-bar input{width:100%;padding:13px 16px 13px 44px;border-radius:var(--radius-md);border:1px solid var(--border-glass);background:var(--bg-glass);color:var(--text-primary);font-family:var(--font-ui);font-size:14px;outline:none;transition:all 0.2s;}
-    .search-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(123,110,160,0.1);}
-    .search-bar .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
-    .categories-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:16px;margin-bottom:28px;scrollbar-width:none;}
-    .categories-row::-webkit-scrollbar{display:none;}
-    .cards-grid{display:grid;grid-template-columns:1fr;gap:20px;}
-    @media(min-width:580px){.cards-grid{grid-template-columns:repeat(2,1fr);}}
-    @media(min-width:900px){.cards-grid{grid-template-columns:repeat(3,1fr);}}
-    .pres-card{border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:transform 0.25s,box-shadow 0.25s;display:flex;flex-direction:column;}
-    .pres-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg);}
-    .pres-card .thumb{height:155px;overflow:hidden;position:relative;background:linear-gradient(135deg,#F2ECE3,#E8DFD0);display:flex;align-items:center;justify-content:center;}
-    .pres-card .thumb img{width:100%;height:100%;object-fit:cover;transition:transform 0.4s;}
-    .pres-card:hover .thumb img{transform:scale(1.04);}
-    .thumb-placeholder{font-family:var(--font-arabic);font-size:72px;color:var(--accent-gold);opacity:0.15;user-select:none;}
-    .thumb-badge{position:absolute;top:10px;right:10px;background:rgba(255,252,248,0.9);border:1px solid var(--border-glass);border-radius:var(--radius-pill);padding:4px 10px;font-size:10px;font-weight:600;color:var(--accent);}
-    .pres-card .card-body{padding:18px 20px 20px;flex:1;display:flex;flex-direction:column;gap:8px;}
-    .card-body h3{font-family:var(--font-display);font-size:18px;font-weight:600;line-height:1.3;color:var(--text-primary);}
-    .card-body p{font-size:12px;color:var(--text-secondary);line-height:1.6;flex:1;}
-    .card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:4px;}
-    .cat-badge{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:4px 10px;border-radius:var(--radius-pill);text-transform:uppercase;letter-spacing:0.3px;}
-    .slides-count{font-size:11px;color:var(--text-muted);font-weight:500;}
-    .empty-state{text-align:center;padding:80px 20px;color:var(--text-muted);}
-    .empty-state .icon{font-size:48px;margin-bottom:16px;opacity:0.4;}
+    /* ── HEADER ── */
+    .app-header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .app-header h1 {
+      font-family: var(--font-arabic);
+      font-size: 22px; color: var(--green);
+      letter-spacing: 0;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--bg-card);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-2); transition: all 0.2s;
+    }
+    .btn-icon:hover { background: var(--gold-light); color: var(--gold-dark); border-color: var(--border-dark); }
+    .btn-icon svg { width: 15px; height: 15px; }
 
-    /* READER */
-    .reader-topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
-    .reader-title{flex:1;font-family:var(--font-display);font-size:clamp(15px,3vw,20px);font-weight:600;color:var(--text-primary);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .slide-counter{font-size:12px;font-weight:600;color:var(--text-secondary);background:var(--accent-soft);padding:5px 12px;border-radius:var(--radius-pill);white-space:nowrap;}
-    .canvas-wrap{position:relative;border-radius:var(--radius-lg);overflow:hidden;background:#FAF8F4;border:1px solid var(--border-glass);box-shadow:var(--shadow-md);margin-bottom:16px;touch-action:pinch-zoom;}
-    #reader-canvas{display:block;width:100%;height:auto;}
-    .canvas-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(248,246,242,0.92);backdrop-filter:blur(4px);z-index:2;}
-    .canvas-loading p{font-size:13px;color:var(--text-muted);margin-top:4px;}
-    .canvas-error{padding:48px 24px;text-align:center;color:var(--text-secondary);}
-    .canvas-error .err-icon{font-size:36px;margin-bottom:12px;}
-    .canvas-error p{font-size:13px;line-height:1.6;}
-    .fs-btn{position:absolute;bottom:14px;right:14px;background:rgba(255,252,248,0.9);border:1px solid var(--border-glass);border-radius:var(--radius-pill);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;color:var(--accent);}
-    .fs-btn:hover{background:var(--accent);color:#fff;} .fs-btn svg{width:16px;height:16px;}
-    .nav-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
-    .nav-bar .btn{min-width:100px;} .page-indicator{font-size:13px;font-weight:600;color:var(--text-secondary);}
-    .refs-section{border-top:1px solid var(--border-glass);padding-top:20px;}
-    .refs-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px;}
-    .refs-chips{display:flex;flex-wrap:wrap;gap:10px;min-height:32px;}
-    .refs-none{font-size:12px;color:var(--text-muted);font-style:italic;padding:4px 0;}
-    #reader-view:-webkit-full-screen,#reader-view:-moz-full-screen,#reader-view:fullscreen{background:#1a1814;}
-    .fullscreen-mode .reader-topbar,.fullscreen-mode .nav-bar,.fullscreen-mode .refs-section{display:none!important;}
-    .fullscreen-mode .fs-btn{display:none!important;}
-    .fullscreen-mode #reader-view { position:fixed !important; inset:0; padding:0 !important; max-width:100vw !important; width:100vw; height:100vh; margin:0 !important; background:#1a1814; z-index:999; display:flex !important; align-items:center; justify-content:center; overflow:hidden; }
-    .fullscreen-mode #reader-view > div { max-width:100vw !important; width:100vw; height:100vh; margin:0 !important; padding:0 !important; display:flex; align-items:center; justify-content:center; }
-    .fullscreen-mode .canvas-wrap { margin:0; border:none; box-shadow:none; border-radius:0; background:transparent; position:static; overflow:hidden; display:flex; align-items:center; justify-content:center; }
-    .fullscreen-mode #reader-canvas { display:block; }
-    /* Drawer fullscreen */
-    .drawer-overlay.drawer-fs{align-items:stretch;}
-    .drawer-overlay.drawer-fs .drawer-sheet{max-height:100vh;border-radius:0;height:100vh;}
-    .drawer-overlay.drawer-fs .drawer-body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;overflow:hidden;}
-    .drawer-overlay.drawer-fs #drawer-zoom{width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-    .fullscreen-controls{display:none;position:fixed;inset:0;z-index:1000;pointer-events:none;}
-    .fullscreen-mode .fullscreen-controls{display:block;}
-    .fs-overlay-bar{position:absolute;bottom:0;left:0;right:0;padding:16px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.6));display:flex;align-items:center;justify-content:space-between;pointer-events:auto;opacity:0;transition:opacity 0.3s;}
-    .fullscreen-mode .fs-overlay-bar{opacity:1;}
-    .fs-page-label{font-size:13px;color:rgba(255,255,255,0.9);font-weight:500;}
-    .fs-exit-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:var(--radius-pill);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;}
-    /* Pinch zoom container */
-    .zoom-container{transform-origin:center center;transition:transform 0.05s ease-out;will-change:transform;}
-    /* Drawer fullscreen */
-    .drawer-overlay.drawer-fs{align-items:stretch;}
-    .drawer-overlay.drawer-fs .drawer-sheet{max-height:100vh;border-radius:0;height:100vh;}
-    .drawer-overlay.drawer-fs .drawer-body{display:flex;align-items:center;justify-content:center;}
+    /* ── FONT TOGGLE ── */
+    .font-selector {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .font-btn {
+      padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border);
+      background: var(--bg-card); cursor: pointer; font-size: 11px;
+      color: var(--text-2); transition: all 0.2s; white-space: nowrap;
+    }
+    .font-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+    .font-btn:nth-child(1) { font-family: 'Scheherazade New', serif; font-size: 15px; }
+    .font-btn:nth-child(2) { font-family: 'Amiri', serif; font-size: 15px; }
 
-    /* DRAWER */
-    .drawer-overlay{position:fixed;inset:0;z-index:500;background:rgba(44,40,37,0.45);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 0.3s;display:flex;align-items:flex-end;}
-    .drawer-overlay.open{opacity:1;pointer-events:auto;}
-    .drawer-sheet{width:100%;max-height:88vh;border-radius:22px 22px 0 0;border-top:1px solid var(--border-glass);transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);display:flex;flex-direction:column;overflow:hidden;}
-    .drawer-overlay.open .drawer-sheet{transform:translateY(0);}
-    .drawer-handle{width:44px;height:5px;border-radius:99px;background:var(--text-muted);opacity:0.35;margin:12px auto 0;flex-shrink:0;}
-    .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;flex-shrink:0;border-bottom:1px solid var(--border-glass);}
-    .drawer-header h3{font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--text-primary);flex:1;}
-    .drawer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px;}
-    .drawer-nav{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-glass);}
+    /* ── SURAH LIST ── */
+    #surah-view { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+    .surah-search {
+      position: relative; margin-bottom: 20px;
+    }
+    .surah-search input {
+      width: 100%; padding: 12px 16px 12px 44px;
+      border-radius: var(--r); border: 1px solid var(--border);
+      background: var(--bg-card); font-family: var(--font-ui);
+      font-size: 14px; color: var(--text); outline: none;
+      transition: border-color 0.2s;
+    }
+    .surah-search input:focus { border-color: var(--gold); }
+    .surah-search .icon {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); color: var(--text-3);
+    }
+    .surah-grid {
+      display: grid; grid-template-columns: 1fr; gap: 10px;
+    }
+    @media(min-width:580px) { .surah-grid { grid-template-columns: repeat(2,1fr); } }
+    .surah-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 16px 20px;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .surah-card:hover { border-color: var(--gold); box-shadow: var(--shadow); transform: translateY(-2px); }
+    .surah-card-left { display: flex; align-items: center; gap: 14px; }
+    .surah-num {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--green-light); color: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; flex-shrink: 0;
+    }
+    .surah-names h3 { font-size: 14px; font-weight: 600; color: var(--text); }
+    .surah-names p  { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .surah-arabic {
+      font-family: var(--font-arabic);
+      font-size: 22px; color: var(--gold-dark);
+    }
+    .surah-meta { font-size: 10px; color: var(--text-3); text-align: center; margin-top: 3px; }
 
-    /* ADMIN */
-    #admin-gate{max-width:360px;margin:80px auto;text-align:center;}
-    #admin-gate .lock-icon{font-size:40px;margin-bottom:16px;color:var(--accent);}
-    #admin-gate h3{font-family:var(--font-display);font-size:24px;color:var(--text-primary);margin-bottom:8px;}
-    #admin-gate p{font-size:13px;color:var(--text-muted);margin-bottom:24px;}
-    #admin-pw-error{font-size:12px;color:#a05050;margin-top:10px;min-height:16px;}
-    .admin-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-md);padding:4px;}
-    .admin-tab{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;text-align:center;border:none;background:none;color:var(--text-secondary);transition:all 0.2s;}
-    .admin-tab.active{background:var(--accent);color:#fff;}
-    .admin-panel{display:none;} .admin-panel.active{display:block;}
-    .admin-table-wrap{overflow-x:auto;border-radius:var(--radius-md);}
-    table{width:100%;border-collapse:collapse;font-size:13px;}
-    th{text-align:left;padding:11px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);background:var(--bg-glass-dark);border-bottom:1px solid var(--border-glass);}
-    td{padding:11px 14px;border-bottom:1px solid var(--border-glass);color:var(--text-secondary);vertical-align:middle;}
-    tr:last-child td{border-bottom:none;} tr:hover td{background:rgba(255,252,248,0.6);}
-    .td-title{font-weight:500;color:var(--text-primary);max-width:200px;} .td-id{font-family:monospace;font-size:11px;color:var(--text-muted);}
-    .toggle-wrap{display:flex;align-items:center;gap:8px;}
-    .toggle{position:relative;width:40px;height:22px;display:inline-block;}
-    .toggle input{opacity:0;width:0;height:0;}
-    .toggle-slider{position:absolute;inset:0;border-radius:99px;background:#D6D0C8;cursor:pointer;transition:background 0.2s;}
-    .toggle-slider::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;left:3px;top:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
-    .toggle input:checked+.toggle-slider{background:var(--accent);}
-    .toggle input:checked+.toggle-slider::before{transform:translateX(18px);}
-    .toggle-label{font-size:11px;color:var(--text-muted);}
-    .modal-overlay{position:fixed;inset:0;z-index:600;background:rgba(44,40,37,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.3s;}
-    .modal-overlay.open{opacity:1;pointer-events:auto;}
-    .modal-box{width:100%;max-width:520px;max-height:90vh;border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column;transform:scale(0.95);transition:transform 0.3s;}
-    .modal-overlay.open .modal-box{transform:scale(1);}
-    .modal-header{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-glass);flex-shrink:0;}
-    .modal-header h3{font-family:var(--font-display);font-size:20px;font-weight:600;}
-    .modal-body{padding:24px;overflow-y:auto;flex:1;}
-    .modal-footer{padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border-glass);flex-shrink:0;}
-    .form-error{font-size:12px;color:#a05050;background:rgba(160,80,80,0.08);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:12px;display:none;}
-    .form-error.show{display:block;}
+    /* ── AYAH VIEW ── */
+    #ayah-view { max-width: 800px; margin: 0 auto; padding: 20px 16px 80px; }
+    .ayah-view-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    }
+    .surah-title-block h2 {
+      font-family: var(--font-arabic); font-size: 28px;
+      color: var(--green); line-height: 1;
+    }
+    .surah-title-block p { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    .bismillah {
+      text-align: center; font-family: var(--font-arabic);
+      font-size: 32px; color: var(--gold-dark);
+      padding: 20px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ayah-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); margin-bottom: 16px;
+      overflow: hidden; transition: box-shadow 0.2s;
+    }
+    .ayah-card:hover { box-shadow: var(--shadow); }
+
+    .ayah-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--green-light), var(--bg));
+    }
+    .ayah-num-badge {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ayah-num-badge .num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .ayah-num-badge span { font-size: 12px; color: var(--text-2); }
+
+    /* Arabic text */
+    .ayah-arabic {
+      padding: 24px 28px 20px;
+      font-family: var(--font-arabic);
+      font-size: var(--arabic-size);
+      line-height: 2.2;
+      color: var(--text);
+      direction: rtl;
+      text-align: right;
+    }
+    /* Tagged root word */
+    .root-word {
+      display: inline;
+      color: var(--gold-dark);
+      border-bottom: 2px solid var(--gold);
+      cursor: pointer;
+      transition: all 0.15s;
+      padding-bottom: 1px;
+    }
+    .root-word:hover {
+      background: var(--gold-light);
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+
+    /* Translations */
+    .ayah-translations { border-top: 1px solid var(--border); }
+    .translation-block {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .translation-block:last-child { border-bottom: none; }
+    .translation-lang {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-3); margin-bottom: 6px;
+    }
+    .translation-text-en {
+      font-size: 14px; line-height: 1.7; color: var(--text-2);
+      font-style: italic;
+    }
+    .translation-text-ur {
+      font-family: var(--font-urdu);
+      font-size: 18px; line-height: 2;
+      color: var(--text-2); direction: rtl; text-align: right;
+    }
+
+    /* ── ROOT WORD MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(26,22,18,0.5);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    @media(min-width:600px) { .modal-overlay { align-items: center; } }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal-sheet {
+      width: 100%; max-width: 600px; max-height: 90vh;
+      background: var(--bg-card);
+      border-radius: 24px 24px 0 0;
+      overflow: hidden; display: flex; flex-direction: column;
+      transform: translateY(40px);
+      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+      box-shadow: 0 -4px 40px rgba(44,32,12,0.2);
+    }
+    @media(min-width:600px) {
+      .modal-sheet { border-radius: 24px; transform: scale(0.95); }
+      .modal-overlay.open .modal-sheet { transform: scale(1); }
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+
+    .modal-handle {
+      width: 40px; height: 4px; border-radius: 99px;
+      background: var(--border-dark); margin: 12px auto 0; flex-shrink: 0;
+    }
+    @media(min-width:600px) { .modal-handle { display: none; } }
+
+    /* Modal header — root letters display */
+    .modal-root-header {
+      padding: 20px 24px 16px;
+      background: linear-gradient(135deg, var(--green) 0%, #3A7A3C 100%);
+      text-align: center; flex-shrink: 0;
+    }
+    .modal-root-letters {
+      font-family: var(--font-arabic);
+      font-size: 42px; color: #fff;
+      line-height: 1.2; direction: rtl;
+    }
+    .modal-root-label {
+      font-size: 11px; color: rgba(255,255,255,0.7);
+      text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;
+    }
+    .modal-surface-form {
+      font-family: var(--font-arabic);
+      font-size: 20px; color: var(--gold-light);
+      margin-top: 6px; direction: rtl;
+    }
+
+    /* Modal body */
+    .modal-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    .modal-section { margin-bottom: 20px; }
+    .modal-section-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-3); margin-bottom: 8px;
+    }
+    .modal-meaning-en {
+      font-size: 16px; color: var(--text); font-weight: 500; line-height: 1.5;
+    }
+    .modal-meaning-ur {
+      font-family: var(--font-urdu); font-size: 20px;
+      color: var(--text); direction: rtl; text-align: right;
+      line-height: 2;
+    }
+    .modal-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .modal-tag {
+      padding: 5px 12px; border-radius: 20px;
+      background: var(--gold-light); color: var(--gold-dark);
+      font-size: 12px; font-weight: 500;
+    }
+    .modal-tag.green {
+      background: var(--green-light); color: var(--green);
+      font-family: var(--font-arabic); font-size: 15px;
+    }
+    .modal-notes {
+      font-size: 13px; line-height: 1.8; color: var(--text-2);
+      background: var(--bg); padding: 14px 16px;
+      border-radius: var(--r); border-left: 3px solid var(--gold);
+    }
+    .modal-occurrence-count {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-light); color: var(--green);
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 600;
+    }
+
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: none;
+      color: #fff; cursor: pointer; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── LOADING / EMPTY ── */
+    .loading-state {
+      text-align: center; padding: 60px 20px; color: var(--text-3);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 3px solid var(--gold-light);
+      border-top-color: var(--gold);
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-3); }
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      padding: 10px 20px; border-radius: 20px;
+      font-size: 13px; color: #fff; z-index: 9999;
+      opacity: 0; pointer-events: none; transition: all 0.3s;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--green); }
+    #toast.error   { background: #8B3A3A; }
+
+    /* ── ADMIN ── */
+    #admin-view { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+    .admin-gate { max-width: 360px; margin: 80px auto; text-align: center; }
+    .admin-gate .lock { font-size: 40px; margin-bottom: 16px; }
+    .admin-gate h3 { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+    .admin-gate p  { font-size: 13px; color: var(--text-3); margin-bottom: 24px; }
+    .admin-gate-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 24px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .field label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); }
+    .field input, .field select, .field textarea {
+      padding: 10px 14px; border-radius: var(--r);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-family: var(--font-ui); font-size: 14px;
+      outline: none; transition: border-color 0.2s; width: 100%;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 20px; border-radius: var(--r); font-family: var(--font-ui);
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: #1A4A1C; transform: translateY(-1px); }
+    .btn-gold { background: var(--gold); color: #fff; }
+    .btn-gold:hover { background: var(--gold-dark); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    #admin-pw-error { font-size: 12px; color: #8B3A3A; margin-top: 8px; }
+
+    /* Admin tabs */
+    .admin-tabs {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 4px;
+    }
+    .admin-tab {
+      flex: 1; padding: 9px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      text-align: center; border: none; background: none;
+      color: var(--text-2); transition: all 0.2s;
+    }
+    .admin-tab.active { background: var(--green); color: #fff; }
+    .admin-panel { display: none; } .admin-panel.active { display: block; }
+
+    /* Tagging tool */
+    .tagging-tool {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 24px; margin-bottom: 20px;
+    }
+    .tagging-tool h3 {
+      font-size: 15px; font-weight: 600; color: var(--text);
+      margin-bottom: 16px;
+    }
+    .ayah-word-display {
+      direction: rtl; text-align: right;
+      font-family: var(--font-arabic); font-size: 26px;
+      line-height: 2.4; padding: 16px; margin: 16px 0;
+      background: var(--bg); border-radius: var(--r);
+      border: 1px solid var(--border); min-height: 80px;
+    }
+    .word-token {
+      display: inline; cursor: pointer; padding: 2px 4px;
+      border-radius: 4px; transition: all 0.15s; margin: 0 2px;
+    }
+    .word-token:hover { background: var(--gold-light); }
+    .word-token.tagged {
+      color: var(--gold-dark); border-bottom: 2px solid var(--gold);
+    }
+    .word-token.selected {
+      background: var(--green-light); color: var(--green);
+      border-bottom: 2px solid var(--green);
+    }
+
+    /* Root picker popup */
+    .root-picker {
+      background: var(--bg-card); border: 1px solid var(--border-dark);
+      border-radius: var(--r-lg); padding: 20px;
+      margin-top: 12px; box-shadow: var(--shadow-md);
+    }
+    .root-picker h4 {
+      font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text);
+    }
+    .root-search-input {
+      width: 100%; padding: 9px 14px; border-radius: var(--r);
+      border: 1px solid var(--border); background: var(--bg);
+      font-family: var(--font-ui); font-size: 13px; outline: none;
+      margin-bottom: 10px;
+    }
+    .root-search-input:focus { border-color: var(--gold); }
+    .existing-roots-list { max-height: 200px; overflow-y: auto; margin-bottom: 12px; }
+    .root-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; border-radius: var(--r);
+      cursor: pointer; transition: background 0.15s;
+      border-bottom: 1px solid var(--border);
+    }
+    .root-item:last-child { border-bottom: none; }
+    .root-item:hover { background: var(--gold-light); }
+    .root-item-letters {
+      font-family: var(--font-arabic); font-size: 18px; color: var(--gold-dark);
+      direction: rtl;
+    }
+    .root-item-meaning { font-size: 12px; color: var(--text-3); }
+
+    /* New root form */
+    .new-root-form {
+      border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px;
+    }
+    .new-root-form h5 { font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 12px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   </style>
 </head>
 <body>
 
 <div id="toast"></div>
 
-<div class="fullscreen-controls" id="fs-controls">
-  <div class="fs-overlay-bar">
-    <span class="fs-page-label" id="fs-page-label">Slide 1 / 1</span>
-    <button class="fs-exit-btn" onclick="Reader.exitFullscreen()">Exit Fullscreen</button>
+<!-- ══ APP HEADER ══ -->
+<header class="app-header">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="btn-icon" id="btn-back" onclick="Router.back()" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h1 id="header-title">القرآن الكريم</h1>
   </div>
-</div>
-
-<!-- LOADER -->
-<div id="pres-loader">
-  <div class="pres-loader-icon">ق</div>
-  <div class="pres-loader-title" id="loader-title">Loading...</div>
-  <div class="pres-loader-sub">Loading slides</div>
-  <div class="pres-loader-bar-wrap"><div class="pres-loader-bar" id="loader-bar"></div></div>
-  <div class="pres-loader-msg" id="loader-msg">Preparing presentation...</div>
-</div>
-
-<!-- GALLERY -->
-<div id="gallery-view" class="view active">
-  <div style="max-width:1100px;margin:0 auto;padding:28px 16px 100px;">
-    <div class="gallery-header">
-      <div>
-        <h1>Quran Lecture Viewer</h1>
-        <p>Scholarly Presentation System</p>
-      </div>
-      <button class="btn-icon glass" onclick="Admin.showGate()" title="Admin Panel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </button>
+  <div class="header-right">
+    <div class="font-selector">
+      <button class="font-btn active" onclick="setFont('scheherazade')" id="font-scheherazade" title="Scheherazade">ﺵ</button>
+      <button class="font-btn" onclick="setFont('amiri')" id="font-amiri" title="Amiri">ﺍ</button>
     </div>
-    <div class="search-bar">
-      <span class="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-      <input type="text" id="gallery-search" placeholder="Search presentations..." oninput="Gallery.filter()">
-    </div>
-    <div class="categories-row" id="categories-row"></div>
-    <div class="cards-grid" id="cards-grid"></div>
+    <button class="btn-icon" onclick="Admin.showGate()" title="Admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </button>
   </div>
-</div>
+</header>
 
-<!-- READER -->
-<div id="reader-view" class="view">
-  <div style="max-width:900px;margin:0 auto;padding:20px 16px 100px;">
-    <div class="reader-topbar">
-      <button class="btn-icon glass" onclick="Router.go('gallery')" title="Back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <span class="reader-title" id="reader-title">—</span>
-      <span class="slide-counter" id="reader-counter">1 / 1</span>
+<!-- ══ SURAH LIST ══ -->
+<div id="surah-view" class="view active">
+  <div style="max-width:720px;margin:0 auto;padding:24px 16px 80px;">
+    <div class="surah-search">
+      <span class="icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input type="text" id="surah-search" placeholder="Search Surah by name..." oninput="SurahList.filter()">
     </div>
-    <div class="canvas-wrap" id="canvas-wrap">
-      <div class="zoom-container" id="reader-zoom">
-        <canvas id="reader-canvas" style="display:none;width:100%;height:auto;"></canvas>
-      </div>
-      <button class="fs-btn" onclick="Reader.enterFullscreen()" title="Fullscreen">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-      </button>
-      <div class="canvas-loading" id="canvas-loading">
-        <div class="spinner"></div>
-        <p id="canvas-loading-msg">Loading slide...</p>
-      </div>
-    </div>
-    <div class="nav-bar">
-      <button class="btn btn-ghost" id="btn-prev" onclick="Reader.prevPage()">← Prev</button>
-      <span class="page-indicator" id="page-indicator">1 / 1</span>
-      <button class="btn btn-ghost" id="btn-next" onclick="Reader.nextPage()">Next →</button>
-    </div>
-    <div class="refs-section">
-      <div class="refs-label">Reference Tags</div>
-      <div class="refs-chips" id="refs-chips"></div>
+    <div class="surah-grid" id="surah-grid">
+      <div class="loading-state"><div class="spinner"></div><p>Loading Surahs...</p></div>
     </div>
   </div>
 </div>
 
-<!-- ADMIN -->
+<!-- ══ AYAH LIST ══ -->
+<div id="ayah-view" class="view">
+  <div style="max-width:800px;margin:0 auto;padding:20px 16px 80px;">
+    <div class="ayah-view-header">
+      <div class="surah-title-block">
+        <h2 id="ayah-view-surah-name">—</h2>
+        <p id="ayah-view-surah-meta">—</p>
+      </div>
+    </div>
+    <div class="bismillah" id="bismillah-display">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</div>
+    <div id="ayahs-list">
+      <div class="loading-state"><div class="spinner"></div><p>Loading Ayahs...</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══ -->
 <div id="admin-view" class="view">
-  <div style="max-width:860px;margin:0 auto;padding:28px 16px 100px;">
-    <div id="admin-gate">
-      <div class="lock-icon">🔒</div>
+  <div style="max-width:860px;margin:0 auto;padding:24px 16px 80px;">
+    <!-- Gate -->
+    <div class="admin-gate" id="admin-gate">
+      <div class="lock">🔒</div>
       <h3>Admin Access</h3>
-      <p>Enter your password to manage content.</p>
-      <div class="glass" style="border-radius:var(--radius-md);padding:24px;">
-        <div class="field"><label>Password</label>
-          <input type="password" id="admin-pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')Admin.login()">
+      <p>Enter your admin key to manage content.</p>
+      <div class="admin-gate-card">
+        <div class="field">
+          <label>Admin Key</label>
+          <input type="password" id="admin-key-input" placeholder="Enter admin key" onkeydown="if(event.key==='Enter')Admin.login()">
         </div>
         <button class="btn btn-primary" style="width:100%" onclick="Admin.login()">Unlock</button>
         <p id="admin-pw-error"></p>
       </div>
     </div>
+
+    <!-- Dashboard -->
     <div id="admin-dashboard" style="display:none;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-        <button class="btn-icon glass" onclick="Router.go('gallery')">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <h2 style="font-family:var(--font-display);font-size:28px;font-weight:600;color:var(--accent);">Admin Panel</h2>
-        <button class="btn btn-ghost" style="margin-left:auto;font-size:12px;" onclick="Admin.logout()">Log out</button>
-      </div>
-      <div style="padding:20px;background:rgba(181,146,76,0.08);border-radius:var(--radius-md);border:1px solid rgba(181,146,76,0.2);margin-bottom:24px;">
-        <p style="font-size:13px;color:var(--accent-gold);font-weight:500;">📋 To add or manage presentations, use the <strong>Apps Script Admin Panel</strong> — it handles uploads and pre-rendering.</p>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">This viewer auto-syncs from your Google Sheet.</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <h2 style="font-size:24px;font-weight:700;color:var(--green);">Admin Panel</h2>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="Admin.logout()">Log out</button>
       </div>
       <div class="admin-tabs">
-        <button class="admin-tab active" onclick="Admin.switchTab('presentations')" id="tab-presentations">Presentations</button>
-        <button class="admin-tab" onclick="Admin.switchTab('references')" id="tab-references">References</button>
+        <button class="admin-tab active" onclick="Admin.tab('surahs')" id="tab-surahs">Surahs</button>
+        <button class="admin-tab" onclick="Admin.tab('ayahs')" id="tab-ayahs">Ayahs & Tagging</button>
+        <button class="admin-tab" onclick="Admin.tab('roots')" id="tab-roots">Root Words</button>
       </div>
-      <div class="admin-panel active" id="panel-presentations">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <span style="font-size:13px;color:var(--text-muted);" id="pres-count">Loading...</span>
-          <button class="btn btn-ghost" onclick="Admin.loadPresentations()" style="font-size:12px;">↺ Refresh</button>
-        </div>
-        <div class="admin-table-wrap glass" style="border-radius:var(--radius-md);">
-          <table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Slides</th><th>Status</th></tr></thead>
-          <tbody id="admin-pres-body"></tbody></table>
+
+      <!-- Surahs Panel -->
+      <div class="admin-panel active" id="panel-surahs">
+        <p style="font-size:13px;color:var(--text-3);margin-bottom:16px;">Add Surahs directly to the Google Sheet. The app reads them automatically.</p>
+        <div class="tagging-tool">
+          <h3>Quick Add Surah</h3>
+          <div class="form-grid">
+            <div class="field"><label>ID</label><input type="text" id="s-id" placeholder="surah_002"></div>
+            <div class="field"><label>Number</label><input type="number" id="s-num" placeholder="2"></div>
+            <div class="field"><label>Arabic Name</label><input type="text" id="s-ar" placeholder="البقرة" style="direction:rtl;font-family:var(--font-arabic);font-size:18px;"></div>
+            <div class="field"><label>English Name</label><input type="text" id="s-en" placeholder="Al-Baqarah"></div>
+            <div class="field"><label>Urdu Name</label><input type="text" id="s-ur" placeholder="البقرہ" style="direction:rtl;font-family:var(--font-urdu);font-size:16px;"></div>
+            <div class="field"><label>Ayah Count</label><input type="number" id="s-count" placeholder="286"></div>
+          </div>
+          <div class="field"><label>Revelation Type</label>
+            <select id="s-rev"><option value="Meccan">Meccan</option><option value="Medinan" selected>Medinan</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="Admin.saveSurah()">Save Surah</button>
         </div>
       </div>
-      <div class="admin-panel" id="panel-references">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-          <span style="font-size:13px;color:var(--text-muted);" id="ref-count">Loading...</span>
-          <button class="btn btn-primary" onclick="Admin.openAddRefModal()">+ Add Reference</button>
+
+      <!-- Ayahs & Tagging Panel -->
+      <div class="admin-panel" id="panel-ayahs">
+        <div class="tagging-tool">
+          <h3>Add / Edit Ayah</h3>
+          <div class="form-grid">
+            <div class="field"><label>Surah</label>
+              <select id="t-surah" onchange="Admin.loadAyahsForTagging()">
+                <option value="">— Select Surah —</option>
+              </select>
+            </div>
+            <div class="field"><label>Ayah Number</label>
+              <input type="number" id="t-num" placeholder="1" min="1">
+            </div>
+          </div>
+          <div class="field"><label>Arabic Text *</label>
+            <textarea id="t-arabic" placeholder="Paste Arabic text here..." style="direction:rtl;font-family:var(--font-arabic);font-size:22px;line-height:2;" oninput="Admin.previewWords()"></textarea>
+          </div>
+          <div class="field"><label>English Translation</label>
+            <textarea id="t-english" placeholder="English translation..."></textarea>
+          </div>
+          <div class="field"><label>Urdu Translation</label>
+            <textarea id="t-urdu" placeholder="Urdu translation..." style="direction:rtl;font-family:var(--font-urdu);font-size:16px;line-height:2;"></textarea>
+          </div>
+          <button class="btn btn-gold" onclick="Admin.saveAyah()" style="margin-bottom:20px;">Save Ayah</button>
+
+          <!-- Word tagging section -->
+          <div id="tagging-section" style="display:none;">
+            <div style="border-top:1px solid var(--border);padding-top:20px;">
+              <h3 style="margin-bottom:8px;">Tag Root Words</h3>
+              <p style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Tap any word below to tag it as a root word.</p>
+              <div class="ayah-word-display" id="word-display"></div>
+              <div id="root-picker-container"></div>
+            </div>
+          </div>
         </div>
-        <div class="admin-table-wrap glass" style="border-radius:var(--radius-md);">
-          <table><thead><tr><th>ID</th><th>Presentation</th><th>Slide</th><th>Label</th><th>Type</th></tr></thead>
-          <tbody id="admin-ref-body"></tbody></table>
+      </div>
+
+      <!-- Roots Panel -->
+      <div class="admin-panel" id="panel-roots">
+        <div class="tagging-tool">
+          <h3>Add / Edit Root Word</h3>
+          <div class="form-grid">
+            <div class="field"><label>Surah</label>
+              <select id="r-surah"><option value="">— Select Surah —</option></select>
+            </div>
+            <div class="field"><label>Root ID</label>
+              <input type="text" id="r-id" placeholder="root_002_001">
+            </div>
+          </div>
+          <div class="field"><label>Root Letters *</label>
+            <input type="text" id="r-letters" placeholder="أ-م-ن" style="direction:rtl;font-family:var(--font-arabic);font-size:22px;">
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Meaning (English) *</label><input type="text" id="r-en" placeholder="To believe, have faith"></div>
+            <div class="field"><label>Meaning (Urdu)</label><input type="text" id="r-ur" placeholder="ایمان لانا" style="direction:rtl;font-family:var(--font-urdu);"></div>
+            <div class="field"><label>Verb Form</label><input type="text" id="r-verb" placeholder="فَعَلَ" style="direction:rtl;font-family:var(--font-arabic);font-size:18px;"></div>
+            <div class="field"><label>Morphology</label><input type="text" id="r-morph" placeholder="Verb Form I, intransitive"></div>
+          </div>
+          <div class="field"><label>Professor's Notes</label>
+            <textarea id="r-notes" placeholder="Detailed linguistic analysis, historical context, related concepts..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="Admin.saveRoot()">Save Root Word</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- REFERENCE DRAWER -->
-<div class="drawer-overlay" id="drawer-overlay" onclick="Drawer.close()">
-  <div class="drawer-sheet glass-dark" onclick="event.stopPropagation()">
-    <div class="drawer-handle"></div>
-    <div class="drawer-header">
-      <h3 id="drawer-title">Reference</h3>
-      <button class="btn-icon" onclick="Drawer.toggleFullscreen()" id="drawer-fs-btn" title="Expand">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-      </button>
-      <button class="btn-icon" onclick="Drawer.close()" style="margin-left:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+<!-- ══ ROOT WORD MODAL ══ -->
+<div class="modal-overlay" id="root-modal" onclick="Modal.close()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-root-header" style="position:relative;">
+      <button class="modal-close" onclick="Modal.close()">✕</button>
+      <div class="modal-root-letters" id="modal-root-letters">—</div>
+      <div class="modal-root-label">Root Word · جذر</div>
+      <div class="modal-surface-form" id="modal-surface-form"></div>
     </div>
-    <div class="drawer-body" id="drawer-body"></div>
-  </div>
-</div>
-
-<!-- ADD REFERENCE MODAL -->
-<div class="modal-overlay" id="modal-add-ref" onclick="Admin.closeModal('modal-add-ref')">
-  <div class="modal-box glass-dark" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <h3>Add Reference Tag</h3>
-      <button class="btn-icon" onclick="Admin.closeModal('modal-add-ref')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="form-error" id="ref-form-error"></div>
-      <div class="field"><label>Reference ID *</label><input type="text" id="rf-id" placeholder="ref_001"></div>
-      <div class="field"><label>Presentation *</label><select id="rf-pres-id"><option value="">- Select -</option></select></div>
-      <div class="field"><label>Slide Number *</label><input type="number" id="rf-slide" placeholder="3" min="1"></div>
-      <div class="field"><label>Label *</label><input type="text" id="rf-label" placeholder="Root: k-t-b"></div>
-      <div class="field"><label>Type *</label><select id="rf-type"><option value="pdf">PDF</option><option value="image">Image</option></select></div>
-      <div class="field"><label>Target Drive File ID *</label><input type="text" id="rf-file-id" placeholder="Drive file ID"></div>
-      <div class="field"><label>Target Page</label><input type="number" id="rf-page" placeholder="1" min="1"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="Admin.closeModal('modal-add-ref')">Cancel</button>
-      <button class="btn btn-primary" onclick="Admin.submitReference()" id="btn-submit-ref">Save Reference</button>
-    </div>
+    <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
 
 <script>
 // ── CONFIG ──
-const WORKER_URL = 'https://quran-lec-system.shahzaibkhalid1101.workers.dev';
-const ADMIN_KEY  = 'qlv_admin_auth';
-const ADMIN_PW   = 'admin789';
-const CATEGORIES = ['Al-Fatiha','Al-Baqarah','Al-Imran','An-Nisa','Al-Maidah','Al-Anam','Al-Araf','Al-Anfal','At-Tawbah','Yunus','General / Introduction','Tajweed','Tafseer','Root Words','Other'];
+const WORKER  = 'https://quran-lec-system.shahzaibkhalid1101.workers.dev';
+const ADMIN_KEY_STORE = 'qlv_admin_key';
 
-// ── PDF.js ──
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ── STATE ──
+let _surahs      = [];
+let _ayahsCache  = {};  // surahId → ayahs[]
+let _rootsCache  = {};  // surahId → roots[]
+let _occsCache   = {};  // surahId → occurrences[]
+let _currentFont = 'scheherazade';
+let _currentSurah = null;
 
-// ── API ──
-const API = {
-  async getPresentations() {
-    const res = await fetch(WORKER_URL + '/presentations');
-    if (!res.ok) throw new Error('Failed to load presentations');
-    return res.json();
-  },
-  async getReferences(presId) {
-    const res = await fetch(WORKER_URL + '/references?presId=' + encodeURIComponent(presId));
-    if (!res.ok) throw new Error('Failed to load references');
-    return res.json();
-  },
-  fileUrl(fileId) { return WORKER_URL + '/file/' + fileId; },
-  thumbnailUrl(fileId) { return WORKER_URL + '/thumbnail/' + fileId; }
-};
+// ── FONT ──
+function setFont(font) {
+  _currentFont = font;
+  document.documentElement.style.setProperty('--font-arabic',
+    font === 'amiri'
+      ? "'Amiri', serif"
+      : "'Scheherazade New', 'Amiri', serif"
+  );
+  document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('font-' + font).classList.add('active');
+  // Re-render current ayahs if open
+  if (_currentSurah && _ayahsCache[_currentSurah.id]) {
+    renderAyahs(_currentSurah);
+  }
+}
 
 // ── TOAST ──
 const Toast = {
@@ -382,615 +678,612 @@ const Toast = {
     const el = document.getElementById('toast');
     el.textContent = msg; el.className = 'show ' + type;
     clearTimeout(this._t);
-    this._t = setTimeout(() => { el.className = ''; }, 3200);
+    this._t = setTimeout(() => el.className = '', 3000);
+  }
+};
+
+// ── API ──
+const API = {
+  async get(path) {
+    const res = await fetch(WORKER + path);
+    if (!res.ok) throw new Error('API error: ' + res.status);
+    return res.json();
+  },
+  async post(path, body) {
+    const key = sessionStorage.getItem(ADMIN_KEY_STORE) || '';
+    const res = await fetch(WORKER + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, adminKey: key })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'API error'); }
+    return res.json();
+  },
+  async del(path, body) {
+    const key = sessionStorage.getItem(ADMIN_KEY_STORE) || '';
+    const res = await fetch(WORKER + path, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, adminKey: key })
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'API error'); }
+    return res.json();
   }
 };
 
 // ── ROUTER ──
 const Router = {
-  go(view) {
+  _stack: [],
+  go(view, title, backable) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(view + '-view').classList.add('active');
-    window.scrollTo(0, 0);
-    if (view === 'gallery') Gallery.init();
-    if (view === 'admin')   Admin.init();
+    document.getElementById('header-title').textContent = title || 'القرآن الكريم';
+    document.getElementById('btn-back').style.display = backable ? 'flex' : 'none';
+    if (backable) this._stack.push(view);
+  },
+  back() {
+    this._stack.pop();
+    const prev = this._stack[this._stack.length - 1] || 'surah';
+    if (prev === 'surah') { this.go('surah', 'القرآن الكريم', false); _currentSurah = null; }
+    else this._stack.pop(); // handled elsewhere
   }
 };
 
-// ── GALLERY ──
-const Gallery = {
-  all: [], active_cat: 'All',
+// ── SURAH LIST ──
+const SurahList = {
   async init() {
-    if (this.all.length) { this.render(); return; }
-    this._renderSkeletons(); this._renderCategories();
-    try { this.all = await API.getPresentations(); this.render(); }
-    catch(e) { document.getElementById('cards-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">⚠️</div><p>Could not load presentations. Please refresh.</p></div>'; }
+    if (_surahs.length) { this.render(); return; }
+    try {
+      _surahs = await API.get('/surahs');
+      this.render();
+    } catch(e) {
+      document.getElementById('surah-grid').innerHTML =
+        '<div class="empty-state"><div class="icon">⚠️</div><p>Could not load Surahs. Check Worker is deployed.</p></div>';
+    }
   },
-  _renderSkeletons() {
-    document.getElementById('cards-grid').innerHTML = Array(6).fill(0).map(() =>
-      `<div class="glass pres-card" style="pointer-events:none;"><div class="skeleton" style="height:155px;border-radius:0;"></div><div class="card-body"><div class="skeleton" style="height:20px;width:80%;margin-bottom:10px;"></div><div class="skeleton" style="height:14px;width:100%;margin-bottom:6px;"></div><div class="skeleton" style="height:14px;width:65%;"></div></div></div>`
-    ).join('');
+
+  filter() {
+    const q = document.getElementById('surah-search').value.toLowerCase();
+    const filtered = _surahs.filter(s =>
+      !q ||
+      s.name_english.toLowerCase().includes(q) ||
+      s.name_arabic.includes(q) ||
+      String(s.number).includes(q)
+    );
+    this.renderList(filtered);
   },
-  _renderCategories() {
-    document.getElementById('categories-row').innerHTML = ['All',...CATEGORIES].map(c =>
-      `<button class="chip ${c===this.active_cat?'active':''}" onclick="Gallery.selectCat('${c}')">${c}</button>`
-    ).join('');
-  },
-  selectCat(cat) {
-    this.active_cat = cat;
-    document.querySelectorAll('#categories-row .chip').forEach(el => el.classList.toggle('active', el.textContent.trim()===cat));
-    this.render();
-  },
-  filter() { this.render(); },
-  render() {
-    const query    = (document.getElementById('gallery-search').value||'').toLowerCase();
-    const filtered = this.all.filter(p => {
-      const matchCat   = this.active_cat==='All' || p.category===this.active_cat;
-      const matchQuery = !query || p.title.toLowerCase().includes(query) || (p.description||'').toLowerCase().includes(query);
-      return matchCat && matchQuery;
-    });
-    const grid = document.getElementById('cards-grid');
-    if (!filtered.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔍</div><p>No presentations found.</p></div>'; return; }
-    grid.innerHTML = filtered.map(p => `
-      <div class="glass pres-card" onclick="Reader.open(${JSON.stringify(p).replace(/"/g,'&quot;')})">
-        <div class="thumb" id="thumb-${p.id}">
-          <span class="thumb-placeholder">ق</span>
-          ${p.total_slides?`<span class="thumb-badge">${p.total_slides} slides</span>`:''}
-        </div>
-        <div class="card-body">
-          <h3>${this._esc(p.title)}</h3>
-          <p>${this._esc(p.description||'')}</p>
-          <div class="card-footer">
-            <span class="cat-badge">${this._esc(p.category||'—')}</span>
-            <span class="slides-count">${p.total_slides||0} slides</span>
+
+  render() { this.renderList(_surahs); },
+
+  renderList(list) {
+    const grid = document.getElementById('surah-grid');
+    if (!list.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No Surahs found.</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(s => `
+      <div class="surah-card" onclick="openSurah(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+        <div class="surah-card-left">
+          <div class="surah-num">${s.number}</div>
+          <div class="surah-names">
+            <h3>${esc(s.name_english)}</h3>
+            <p>${s.ayah_count} Ayahs · ${s.revelation_type}</p>
           </div>
         </div>
+        <div style="text-align:right;">
+          <div class="surah-arabic">${esc(s.name_arabic)}</div>
+          ${s.name_urdu ? `<div class="surah-meta" style="font-family:var(--font-urdu);font-size:13px;">${esc(s.name_urdu)}</div>` : ''}
+        </div>
       </div>`).join('');
-    filtered.forEach(p => { if (p.thumbnail_file_id) this._loadThumb(p); });
-  },
-  _loadThumb(p) {
-    const img  = new Image();
-    const wrap = document.getElementById('thumb-'+p.id);
-    img.onload = () => {
-      if (!wrap) return;
-      wrap.innerHTML = `<img src="${API.thumbnailUrl(p.thumbnail_file_id)}" alt="${p.title}">${p.total_slides?`<span class="thumb-badge">${p.total_slides} slides</span>`:''}`;
-    };
-    img.src = API.thumbnailUrl(p.thumbnail_file_id);
-  },
-  _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-};
-
-// ── PDF CACHE ──
-const PdfCache = {
-  _docs: {},
-  has(id)      { return !!this._docs[id]; },
-  get(id)      { return this._docs[id]; },
-  set(id, doc) { this._docs[id] = doc; },
-};
-
-// ── LOADER ──
-const Loader = {
-  show(title) {
-    document.getElementById('loader-title').textContent = title;
-    document.getElementById('loader-msg').textContent   = 'Preparing presentation...';
-    document.getElementById('loader-bar').style.width   = '0%';
-    const el = document.getElementById('pres-loader');
-    el.classList.remove('hiding'); el.classList.add('visible');
-  },
-  setProgress(pct, msg) {
-    document.getElementById('loader-bar').style.width = Math.min(pct,100)+'%';
-    if (msg) document.getElementById('loader-msg').textContent = msg;
-  },
-  async hide() {
-    this.setProgress(100, 'Ready');
-    await _sleep(300);
-    const el = document.getElementById('pres-loader');
-    el.classList.add('hiding');
-    await _sleep(350);
-    el.classList.remove('visible','hiding');
-  },
-  forceHide() { document.getElementById('pres-loader').classList.remove('visible','hiding'); }
-};
-
-function _sleep(ms) { return new Promise(r => setTimeout(r,ms)); }
-
-// ── READER ──
-// PDF.js loads PDF directly from the Worker file proxy URL
-// No base64, no chunking — pure streaming, every page correct
-const Reader = {
-  pres: null, refs: [], currentPage: 1, totalPages: 1,
-  isFullscreen: false, _rendering: false,
-
-  async open(pres) {
-    const self = this;
-    self.pres = pres; self.refs = []; self.currentPage = 1;
-    self.totalPages = pres.total_slides || 1; self._rendering = false;
-
-    Loader.show(pres.title);
-    Loader.setProgress(10, 'Loading slides...');
-
-    if (!pres.drive_file_id) {
-      Loader.forceHide(); Router.go('reader');
-      self._showError('No PDF linked to this presentation.'); return;
-    }
-
-    try {
-      let pdfDoc;
-
-      if (PdfCache.has(pres.id)) {
-        // Instant — already loaded
-        pdfDoc = PdfCache.get(pres.id);
-        Loader.setProgress(100, 'Ready');
-        await _sleep(300);
-      } else {
-        // Load PDF directly via Worker URL — PDF.js streams it natively
-        const pdfUrl = API.fileUrl(pres.drive_file_id);
-        Loader.setProgress(20, 'Loading slides...');
-
-        // PDF.js onProgress updates the loader bar
-        const loadingTask = pdfjsLib.getDocument({
-          url: pdfUrl,
-          withCredentials: false
-        });
-
-        loadingTask.onProgress = (progress) => {
-          if (progress.total) {
-            const pct = 20 + (progress.loaded / progress.total) * 70;
-            Loader.setProgress(pct, 'Loading slides...');
-          }
-        };
-
-        pdfDoc = await loadingTask.promise;
-        self.totalPages = pdfDoc.numPages;
-        PdfCache.set(pres.id, pdfDoc);
-        Loader.setProgress(95, 'Loading slides...');
-      }
-
-      await Loader.hide();
-      Router.go('reader');
-      document.getElementById('reader-title').textContent     = pres.title;
-      document.getElementById('refs-chips').innerHTML         = '';
-      document.getElementById('reader-canvas').style.display  = 'block';
-      document.getElementById('canvas-loading').style.display = 'none';
-
-      await self._renderPage(1);
-
-      // Load refs silently
-      API.getReferences(pres.id)
-        .then(refs => { self.refs = refs||[]; self._renderChips(); })
-        .catch(()=>{});
-
-    } catch(e) {
-      Loader.forceHide(); Router.go('reader');
-      document.getElementById('reader-title').textContent     = pres.title;
-      document.getElementById('canvas-loading').style.display = 'flex';
-      self._showError('Could not open presentation.<br><small style="color:var(--text-muted)">' + e.message + '</small>');
-    }
-  },
-
-  async _renderPage(n) {
-    if (this._rendering) return;
-    this._rendering = true;
-    const pdfDoc = PdfCache.get(this.pres.id);
-    if (!pdfDoc) { this._rendering = false; return; }
-    try {
-      const total  = pdfDoc.numPages;
-      this.currentPage = Math.max(1, Math.min(n, total));
-      this.totalPages  = total;
-      const page   = await pdfDoc.getPage(this.currentPage);
-      const canvas = document.getElementById('reader-canvas');
-      const dpr    = window.devicePixelRatio || 1;
-      const vp0    = page.getViewport({ scale: 1 });
-
-      let scale;
-      if (this.isFullscreen) {
-        const scaleW = (window.innerWidth  * 0.97) / vp0.width;
-        const scaleH = (window.innerHeight * 0.97) / vp0.height;
-        scale = Math.min(scaleW, scaleH);
-      } else {
-        scale = (canvas.parentElement.clientWidth || 800) / vp0.width;
-      }
-
-      const vp = page.getViewport({ scale: scale * dpr });
-      // Render at high DPI, display at CSS size
-      canvas.width  = vp.width;
-      canvas.height = vp.height;
-      canvas.style.width  = (vp.width  / dpr) + 'px';
-      canvas.style.height = (vp.height / dpr) + 'px';
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-      document.getElementById('canvas-loading').style.display = 'none';
-      this._updateCounters(); this._renderChips();
-    } catch(e) { this._showError('Could not render slide ' + n + '.'); }
-    finally    { this._rendering = false; }
-  },
-
-  _updateCounters() {
-    const label = this.currentPage + ' / ' + this.totalPages;
-    document.getElementById('reader-counter').textContent = label;
-    document.getElementById('page-indicator').textContent  = label;
-    document.getElementById('fs-page-label').textContent   = 'Slide ' + label;
-    document.getElementById('btn-prev').disabled = this.currentPage <= 1;
-    document.getElementById('btn-next').disabled = this.currentPage >= this.totalPages;
-  },
-
-  prevPage() { if (this.currentPage > 1)               this._renderPage(this.currentPage - 1); },
-  nextPage() { if (this.currentPage < this.totalPages) this._renderPage(this.currentPage + 1); },
-
-  _renderChips() {
-    const container = document.getElementById('refs-chips');
-    const current   = this.refs.filter(r => r.slide_number === this.currentPage);
-    if (!current.length) { container.innerHTML = '<span class="refs-none">No references on this slide.</span>'; return; }
-    container.innerHTML = current.map(r =>
-      `<button class="chip chip-gold" onclick="Drawer.open(${JSON.stringify(r).replace(/"/g,'&quot;')})">${r.label}</button>`
-    ).join('');
-  },
-
-  _showError(msg) {
-    const loading = document.getElementById('canvas-loading');
-    loading.innerHTML = `<div class="canvas-error"><div class="err-icon">📄</div><p>${msg}</p></div>`;
-    loading.style.display = 'flex';
-  },
-
-  enterFullscreen() {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-  },
-  exitFullscreen() {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
-  },
-  _touchStartX:0, _touchStartY:0,
-  onTouchStart(e) { this._touchStartX=e.touches[0].clientX; this._touchStartY=e.touches[0].clientY; },
-  onTouchEnd(e) {
-    const dx = e.changedTouches[0].clientX - this._touchStartX;
-    const dy = e.changedTouches[0].clientY - this._touchStartY;
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) dx < 0 ? this.nextPage() : this.prevPage();
   }
 };
 
-document.addEventListener('fullscreenchange',       _onFsChange);
-document.addEventListener('webkitfullscreenchange', _onFsChange);
-function _onFsChange() {
-  const f = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  document.body.classList.toggle('fullscreen-mode', f);
-  Reader.isFullscreen = f;
-  if (f) {
-    setTimeout(() => { if (Reader.pres) Reader._renderPage(Reader.currentPage); }, 300);
-    Zoom.attach(document.getElementById('reader-zoom'));
-  } else {
-    Zoom.detach();
-    setTimeout(() => { if (Reader.pres) Reader._renderPage(Reader.currentPage); }, 300);
+// ── OPEN SURAH ──
+async function openSurah(surah) {
+  _currentSurah = surah;
+  Router.go('ayah', surah.name_arabic + ' · ' + surah.name_english, true);
+  document.getElementById('ayah-view-surah-name').textContent = surah.name_arabic;
+  document.getElementById('ayah-view-surah-meta').textContent =
+    'Surah ' + surah.number + ' · ' + surah.name_english + ' · ' + surah.ayah_count + ' Ayahs · ' + surah.revelation_type;
+  // Hide bismillah for Al-Fatiha (it IS the bismillah) and At-Tawbah (no bismillah)
+  const hideBismillah = surah.number === 1 || surah.number === 9;
+  document.getElementById('bismillah-display').style.display = hideBismillah ? 'none' : 'block';
+
+  document.getElementById('ayahs-list').innerHTML =
+    '<div class="loading-state"><div class="spinner"></div><p>Loading Ayahs...</p></div>';
+
+  try {
+    // Load ayahs, roots, occurrences in parallel
+    const [ayahs, roots, occs] = await Promise.all([
+      _ayahsCache[surah.id] ? Promise.resolve(_ayahsCache[surah.id]) : API.get('/ayahs?surahId=' + surah.id),
+      _rootsCache[surah.id] ? Promise.resolve(_rootsCache[surah.id]) : API.get('/roots?surahId=' + surah.id),
+      _occsCache[surah.id]  ? Promise.resolve(_occsCache[surah.id])  : API.get('/occurrences?surahId=' + surah.id),
+    ]);
+    _ayahsCache[surah.id] = ayahs;
+    _rootsCache[surah.id] = roots;
+    _occsCache[surah.id]  = occs;
+    renderAyahs(surah);
+  } catch(e) {
+    document.getElementById('ayahs-list').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠️</div><p>Could not load Ayahs.</p></div>';
   }
 }
 
-// ── ZOOM MODULE (fullscreen only — mobile pinch + desktop Ctrl+scroll/keys) ──
-const Zoom = {
-  _el: null, _scale: 1, _posX: 0, _posY: 0,
-  _startDist: 0, _startScale: 1, _startX: 0, _startY: 0,
-  _bound: {},
+function renderAyahs(surah) {
+  const ayahs = _ayahsCache[surah.id] || [];
+  const occs  = _occsCache[surah.id]  || [];
+  const roots = _rootsCache[surah.id] || [];
 
-  attach(el) {
-    this._el = el; this._scale = 1; this._posX = 0; this._posY = 0;
-    this._bound.ts  = e => this._onTouchStart(e);
-    this._bound.tm  = e => this._onTouchMove(e);
-    this._bound.te  = e => this._onTouchEnd(e);
-    this._bound.wh  = e => this._onWheel(e);
-    el.addEventListener('touchstart', this._bound.ts, { passive: false });
-    el.addEventListener('touchmove',  this._bound.tm, { passive: false });
-    el.addEventListener('touchend',   this._bound.te, { passive: true  });
-    window.addEventListener('wheel',  this._bound.wh, { passive: false });
-  },
+  // Build quick lookup: ayah_id → occurrences[]
+  const occsByAyah = {};
+  occs.forEach(o => {
+    if (!occsByAyah[o.ayah_id]) occsByAyah[o.ayah_id] = [];
+    occsByAyah[o.ayah_id].push(o);
+  });
 
-  detach() {
-    if (!this._el) return;
-    this._el.removeEventListener('touchstart', this._bound.ts);
-    this._el.removeEventListener('touchmove',  this._bound.tm);
-    this._el.removeEventListener('touchend',   this._bound.te);
-    window.removeEventListener('wheel', this._bound.wh);
-    this.reset();
-    this._el = null;
-  },
+  // Build root lookup: root_id → root
+  const rootById = {};
+  roots.forEach(r => rootById[r.id] = r);
 
-  reset() {
-    this._scale = 1; this._posX = 0; this._posY = 0;
-    if (this._el) this._el.style.transform = '';
-  },
-
-  _dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); },
-
-  _onTouchStart(e) {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      this._startDist  = this._dist(e.touches);
-      this._startScale = this._scale;
-    } else if (e.touches.length === 1 && this._scale > 1) {
-      this._startX = e.touches[0].clientX - this._posX;
-      this._startY = e.touches[0].clientY - this._posY;
-    }
-  },
-
-  _onTouchMove(e) {
-    if (e.touches.length === 2) {
-      e.preventDefault();
-      this._scale = Math.min(5, Math.max(1, this._startScale * (this._dist(e.touches) / this._startDist)));
-      this._apply();
-    } else if (e.touches.length === 1 && this._scale > 1) {
-      e.preventDefault();
-      this._posX = e.touches[0].clientX - this._startX;
-      this._posY = e.touches[0].clientY - this._startY;
-      this._apply();
-    }
-  },
-
-  _onTouchEnd(e) {
-    if (this._scale <= 1.05) { this._scale = 1; this._posX = 0; this._posY = 0; this._apply(); }
-  },
-
-  _onWheel(e) {
-    if (!Reader.isFullscreen) return;
-    if (!e.ctrlKey && !e.metaKey) return;
-    e.preventDefault();
-    const delta   = e.deltaY > 0 ? 0.9 : 1.1;
-    this._scale   = Math.min(5, Math.max(1, this._scale * delta));
-    if (this._scale <= 1.05) { this._scale = 1; this._posX = 0; this._posY = 0; }
-    this._apply();
-  },
-
-  _apply() {
-    if (!this._el) return;
-    this._el.style.transform = `translate(${this._posX}px, ${this._posY}px) scale(${this._scale})`;
-  }
-};
-
-// Desktop Ctrl+/- zoom in fullscreen
-document.addEventListener('keydown', e => {
-  const readerActive = document.getElementById('reader-view').classList.contains('active');
-  if (!readerActive) return;
-
-  if (Reader.isFullscreen && e.ctrlKey) {
-    if (e.key === '=' || e.key === '+') { e.preventDefault(); Zoom._scale = Math.min(5, Zoom._scale * 1.15); Zoom._apply(); return; }
-    if (e.key === '-')                  { e.preventDefault(); Zoom._scale = Math.max(1, Zoom._scale * 0.87); if(Zoom._scale<=1.05){Zoom._scale=1;Zoom._posX=0;Zoom._posY=0;} Zoom._apply(); return; }
-    if (e.key === '0')                  { e.preventDefault(); Zoom.reset(); return; }
+  if (!ayahs.length) {
+    document.getElementById('ayahs-list').innerHTML =
+      '<div class="empty-state"><div class="icon">📖</div><p>No Ayahs found for this Surah.<br>Add them via the Admin panel.</p></div>';
+    return;
   }
 
-  if (e.key==='ArrowRight'||e.key==='ArrowDown') { if(Zoom._scale<=1) Reader.nextPage(); }
-  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   { if(Zoom._scale<=1) Reader.prevPage(); }
-  if (e.key==='Escape') {
-    if (Reader.isFullscreen) Reader.exitFullscreen();
-  }
-});
-
-// Swipe (only when not zoomed)
-const canvasWrap = document.getElementById('canvas-wrap');
-canvasWrap.addEventListener('touchstart', e => { if(e.touches.length===1 && Zoom._scale<=1) Reader.onTouchStart(e); }, { passive:true });
-canvasWrap.addEventListener('touchend',   e => { if(Zoom._scale<=1) Reader.onTouchEnd(e); }, { passive:true });
-
-// ── DRAWER ZOOM (only when expanded to fullscreen) ──
-const DrawerZoom = {
-  _el: null, _scale:1, _posX:0, _posY:0, _startDist:0, _startScale:1, _startX:0, _startY:0,
-
-  attach(el) {
-    this._el = el; this._scale=1; this._posX=0; this._posY=0;
-    el.addEventListener('touchstart', e => this._onStart(e), { passive:false });
-    el.addEventListener('touchmove',  e => this._onMove(e),  { passive:false });
-    el.addEventListener('touchend',   e => this._onEnd(e),   { passive:true  });
-  },
-
-  reset() { this._scale=1; this._posX=0; this._posY=0; if(this._el) this._el.style.transform=''; },
-  _dist(t) { return Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY); },
-
-  _onStart(e) {
-    if (!Drawer._isFs) return;
-    if (e.touches.length===2) { e.preventDefault(); this._startDist=this._dist(e.touches); this._startScale=this._scale; }
-    else if (e.touches.length===1&&this._scale>1) { this._startX=e.touches[0].clientX-this._posX; this._startY=e.touches[0].clientY-this._posY; }
-  },
-  _onMove(e) {
-    if (!Drawer._isFs) return;
-    if (e.touches.length===2) { e.preventDefault(); this._scale=Math.min(5,Math.max(1,this._startScale*(this._dist(e.touches)/this._startDist))); this._apply(); }
-    else if (e.touches.length===1&&this._scale>1) { e.preventDefault(); this._posX=e.touches[0].clientX-this._startX; this._posY=e.touches[0].clientY-this._startY; this._apply(); }
-  },
-  _onEnd(e) { if(this._scale<=1.05){this._scale=1;this._posX=0;this._posY=0;this._apply();} },
-  _apply() { if(this._el) this._el.style.transform=`translate(${this._posX}px,${this._posY}px) scale(${this._scale})`; }
-};
-
-// ── DRAWER ──
-const Drawer = {
-  _pdfDoc: null, drawerPage: 1, totalPages: 1, _isFs: false,
-
-  open(ref) {
-    document.getElementById('drawer-title').textContent = ref.label;
-    document.getElementById('drawer-body').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:200px;flex-direction:column;gap:12px;"><div class="spinner"></div><p style="font-size:13px;color:var(--text-muted);">Loading reference...</p></div>';
-    document.getElementById('drawer-overlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-    if (ref.type==='image') this._loadImage(ref);
-    else this._loadPdf(ref);
-  },
-
-  async _loadPdf(ref) {
-    try {
-      const pdfUrl = API.fileUrl(ref.target_file_id);
-      this._pdfDoc = await pdfjsLib.getDocument({ url: pdfUrl, withCredentials: false }).promise;
-      this.totalPages  = this._pdfDoc.numPages;
-      this.drawerPage  = Math.max(1, Math.min(ref.target_page||1, this.totalPages));
-
-      document.getElementById('drawer-body').innerHTML = `
-        <div style="border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-glass);margin-bottom:4px;display:flex;justify-content:center;background:#FAF8F4;">
-          <div class="zoom-container" id="drawer-zoom">
-            <canvas id="drawer-canvas" style="display:block;height:auto;"></canvas>
+  document.getElementById('ayahs-list').innerHTML = ayahs
+    .sort((a,b) => a.number - b.number)
+    .map(ayah => {
+      const ayahOccs = occsByAyah[ayah.id] || [];
+      const arabicHtml = buildArabicHtml(ayah.arabic_text, ayahOccs, rootById);
+      return `
+      <div class="ayah-card">
+        <div class="ayah-header">
+          <div class="ayah-num-badge">
+            <div class="num">${ayah.number}</div>
+            <span>Ayah ${ayah.number}</span>
           </div>
+          ${ayahOccs.length ? `<span style="font-size:11px;color:var(--gold-dark);font-weight:600;">${ayahOccs.length} root word${ayahOccs.length>1?'s':''}</span>` : ''}
         </div>
-        <div class="drawer-nav">
-          <button class="btn btn-ghost" id="drawer-prev" onclick="Drawer.prevPage()">← Prev</button>
-          <span class="page-indicator" id="drawer-counter">${this.drawerPage} / ${this.totalPages}</span>
-          <button class="btn btn-ghost" id="drawer-next" onclick="Drawer.nextPage()">Next →</button>
-        </div>`;
-      await this._renderDrawerPage(this.drawerPage);
-      const dzoom = document.getElementById('drawer-zoom');
-      if (dzoom) DrawerZoom.attach(dzoom);
-    } catch(e) {
-      document.getElementById('drawer-body').innerHTML = `<div class="canvas-error"><div class="err-icon">⚠️</div><p>Could not load reference.<br><small>${e.message}</small></p></div>`;
-    }
-  },
+        <div class="ayah-arabic">${arabicHtml}</div>
+        <div class="ayah-translations">
+          ${ayah.english_translation ? `
+          <div class="translation-block">
+            <div class="translation-lang">English</div>
+            <div class="translation-text-en">${esc(ayah.english_translation)}</div>
+          </div>` : ''}
+          ${ayah.urdu_translation ? `
+          <div class="translation-block">
+            <div class="translation-lang">اردو</div>
+            <div class="translation-text-ur">${esc(ayah.urdu_translation)}</div>
+          </div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+}
 
-  async _renderDrawerPage(n) {
-    if (!this._pdfDoc) return;
-    const page   = await this._pdfDoc.getPage(n);
-    const canvas = document.getElementById('drawer-canvas');
-    if (!canvas) return;
-    const dpr    = window.devicePixelRatio || 1;
-    const vp0    = page.getViewport({ scale: 1 });
-    const availW = this._isFs ? window.innerWidth - 32 : (canvas.parentElement.clientWidth || 400);
-    // In fullscreen drawer mode use full screen height, else 55%
-    const availH = this._isFs ? window.innerHeight * 0.88 : window.innerHeight * 0.55;
-    const scaleW = availW / vp0.width;
-    const scaleH = availH / vp0.height;
-    const scale  = Math.min(scaleW, scaleH);
-    const vp     = page.getViewport({ scale: scale * dpr });
-    canvas.width  = vp.width;
-    canvas.height = vp.height;
-    canvas.style.width  = (vp.width  / dpr) + 'px';
-    canvas.style.height = (vp.height / dpr) + 'px';
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-    const counter = document.getElementById('drawer-counter');
-    const prev    = document.getElementById('drawer-prev');
-    const next    = document.getElementById('drawer-next');
-    if (counter) counter.textContent = n + ' / ' + this.totalPages;
-    if (prev)    prev.disabled = n <= 1;
-    if (next)    next.disabled = n >= this.totalPages;
-  },
+// Build Arabic HTML — parse [[word|root_id]] tags
+function buildArabicHtml(text, occs, rootById) {
+  if (!text) return '';
+  // Replace [[word|root_id]] with clickable spans
+  return esc(text).replace(/\[\[(.+?)\|(.+?)\]\]/g, (match, word, rootId) => {
+    const root = rootById[rootId];
+    const title = root ? root.root_letters + ' — ' + root.meaning_english : rootId;
+    return `<span class="root-word" onclick="Modal.open('${rootId}','${esc(word)}')" title="${esc(title)}">${esc(word)}</span>`;
+  });
+}
 
-  toggleFullscreen() {
-    const overlay = document.getElementById('drawer-overlay');
-    this._isFs    = !this._isFs;
-    overlay.classList.toggle('drawer-fs', this._isFs);
-    const btn = document.getElementById('drawer-fs-btn');
-    if (this._isFs) {
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>';
-      btn.title = 'Collapse';
-    } else {
-      DrawerZoom.reset();
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
-      btn.title = 'Expand';
-    }
-    setTimeout(() => { if (this._pdfDoc) this._renderDrawerPage(this.drawerPage); }, 350);
-  },
-  async prevPage() { if (this.drawerPage>1) { this.drawerPage--; DrawerZoom.reset(); await this._renderDrawerPage(this.drawerPage); } },
-  async nextPage() { if (this.drawerPage<this.totalPages) { this.drawerPage++; DrawerZoom.reset(); await this._renderDrawerPage(this.drawerPage); } },
+// ── ROOT WORD MODAL ──
+const Modal = {
+  open(rootId, surfaceForm) {
+    const surahId = _currentSurah ? _currentSurah.id : null;
+    const roots   = surahId ? (_rootsCache[surahId] || []) : [];
+    const root    = roots.find(r => r.id === rootId);
+    const occs    = surahId ? (_occsCache[surahId] || []) : [];
+    const occCount = occs.filter(o => o.root_id === rootId).length;
 
-  async _loadImage(ref) {
-    try {
-      const url = API.fileUrl(ref.target_file_id);
-      document.getElementById('drawer-body').innerHTML = `<img src="${url}" style="width:100%;border-radius:var(--radius-md);display:block;" alt="${ref.label}">`;
-    } catch(e) {
-      document.getElementById('drawer-body').innerHTML = '<div class="canvas-error"><div class="err-icon">⚠️</div><p>Could not load image.</p></div>';
+    if (!root) {
+      Toast.show('Root word data not found.', 'error');
+      return;
     }
+
+    document.getElementById('modal-root-letters').textContent   = root.root_letters || '—';
+    document.getElementById('modal-surface-form').textContent   = surfaceForm || '';
+
+    const body = [];
+
+    if (root.meaning_english) body.push(`
+      <div class="modal-section">
+        <div class="modal-section-label">Meaning · معنی</div>
+        <div class="modal-meaning-en">${esc(root.meaning_english)}</div>
+        ${root.meaning_urdu ? `<div class="modal-meaning-ur" style="margin-top:8px;">${esc(root.meaning_urdu)}</div>` : ''}
+      </div>`);
+
+    if (root.verb_form || root.morphology) body.push(`
+      <div class="modal-section">
+        <div class="modal-section-label">Grammar · نحو</div>
+        <div class="modal-tags">
+          ${root.verb_form ? `<span class="modal-tag green">${esc(root.verb_form)}</span>` : ''}
+          ${root.morphology ? `<span class="modal-tag">${esc(root.morphology)}</span>` : ''}
+        </div>
+      </div>`);
+
+    if (occCount > 0) body.push(`
+      <div class="modal-section">
+        <div class="modal-section-label">Occurrences in this Surah</div>
+        <span class="modal-occurrence-count">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Appears ${occCount} time${occCount>1?'s':''} in this Surah
+        </span>
+      </div>`);
+
+    if (root.notes) body.push(`
+      <div class="modal-section">
+        <div class="modal-section-label">Professor's Notes</div>
+        <div class="modal-notes">${esc(root.notes)}</div>
+      </div>`);
+
+    document.getElementById('modal-body').innerHTML = body.join('') ||
+      '<p style="color:var(--text-3);font-size:13px;text-align:center;padding:20px;">No details available yet.</p>';
+
+    document.getElementById('root-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
   },
 
   close() {
-    const overlay = document.getElementById('drawer-overlay');
-    overlay.classList.remove('open','drawer-fs');
+    document.getElementById('root-modal').classList.remove('open');
     document.body.style.overflow = '';
-    this._pdfDoc=null; this.drawerPage=1; this.totalPages=1; this._isFs=false;
-    DrawerZoom.reset();
-    const btn = document.getElementById('drawer-fs-btn');
-    if (btn) btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>';
   }
 };
 
 // ── ADMIN ──
 const Admin = {
-  allPres: [],
-
-  showGate() { Router.go('admin'); },
-
   init() {
-    if (sessionStorage.getItem(ADMIN_KEY)==='true') this._showDashboard();
-    else { document.getElementById('admin-gate').style.display='block'; document.getElementById('admin-dashboard').style.display='none'; }
+    const key = sessionStorage.getItem(ADMIN_KEY_STORE);
+    if (key) this._showDashboard();
+    else {
+      document.getElementById('admin-gate').style.display = 'block';
+      document.getElementById('admin-dashboard').style.display = 'none';
+    }
   },
+
+  showGate() { Router.go('admin', 'Admin Panel', true); this.init(); },
 
   login() {
-    const pw  = document.getElementById('admin-pw-input').value;
-    const err = document.getElementById('admin-pw-error');
-    if (pw===ADMIN_PW) { sessionStorage.setItem(ADMIN_KEY,'true'); err.textContent=''; this._showDashboard(); }
-    else { err.textContent='Incorrect password.'; document.getElementById('admin-pw-input').value=''; }
+    const key = document.getElementById('admin-key-input').value.trim();
+    if (!key) { document.getElementById('admin-pw-error').textContent = 'Enter admin key.'; return; }
+    sessionStorage.setItem(ADMIN_KEY_STORE, key);
+    document.getElementById('admin-pw-error').textContent = '';
+    this._showDashboard();
   },
 
-  logout() { sessionStorage.removeItem(ADMIN_KEY); document.getElementById('admin-gate').style.display='block'; document.getElementById('admin-dashboard').style.display='none'; },
+  logout() {
+    sessionStorage.removeItem(ADMIN_KEY_STORE);
+    document.getElementById('admin-gate').style.display = 'block';
+    document.getElementById('admin-dashboard').style.display = 'none';
+  },
 
   _showDashboard() {
-    document.getElementById('admin-gate').style.display='none';
-    document.getElementById('admin-dashboard').style.display='block';
-    this.loadPresentations();
+    document.getElementById('admin-gate').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'block';
+    this._populateSurahSelects();
   },
 
-  async loadPresentations() {
-    try {
-      this.allPres = await API.getPresentations();
-      document.getElementById('pres-count').textContent = this.allPres.length + ' presentations';
-      const tbody = document.getElementById('admin-pres-body');
-      if (!this.allPres.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No presentations yet.</td></tr>'; return; }
-      tbody.innerHTML = this.allPres.map(p => `<tr>
-        <td class="td-id">${p.id}</td>
-        <td class="td-title">${this._esc(p.title)}</td>
-        <td style="font-size:12px;">${this._esc(p.category||'—')}</td>
-        <td style="font-size:12px;">${p.total_slides||0}</td>
-        <td><span class="chip" style="font-size:10px;padding:3px 10px;cursor:default;${p.published?'background:var(--accent);color:#fff;':'background:#f0ebe3;color:var(--text-muted);'}">${p.published?'Live':'Draft'}</span></td>
-      </tr>`).join('');
-
-      // Load refs count
-      this.loadAllRefs();
-    } catch(e) { Toast.show('Failed to load: '+e.message,'error'); }
+  tab(name) {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('panel-' + name).classList.add('active');
   },
 
-  async loadAllRefs() {
-    const allRefs = [];
-    for (const p of this.allPres) {
-      try { const refs = await API.getReferences(p.id); allRefs.push(...refs); } catch(e) {}
+  async _populateSurahSelects() {
+    if (!_surahs.length) {
+      try { _surahs = await API.get('/surahs'); } catch(e) {}
     }
-    document.getElementById('ref-count').textContent = allRefs.length + ' references';
-    const tbody = document.getElementById('admin-ref-body');
-    if (!allRefs.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No references yet.</td></tr>'; return; }
-    tbody.innerHTML = allRefs.map(r => `<tr>
-      <td class="td-id">${r.id}</td>
-      <td style="font-size:12px;">${r.presentation_id}</td>
-      <td style="font-size:12px;text-align:center;">${r.slide_number}</td>
-      <td style="font-family:var(--font-arabic);font-size:14px;">${this._esc(r.label)}</td>
-      <td><span class="chip" style="font-size:10px;padding:4px 10px;cursor:default;">${r.type}</span></td>
-    </tr>`).join('');
+    const opts = '<option value="">— Select Surah —</option>' +
+      _surahs.map(s => `<option value="${s.id}">${s.number}. ${s.name_english} (${s.name_arabic})</option>`).join('');
+    ['t-surah','r-surah'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = opts;
+    });
   },
 
-  switchTab(tab) {
-    document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.admin-panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById('tab-'+tab).classList.add('active');
-    document.getElementById('panel-'+tab).classList.add('active');
+  async saveSurah() {
+    const data = {
+      id:              document.getElementById('s-id').value.trim(),
+      number:          parseInt(document.getElementById('s-num').value),
+      name_arabic:     document.getElementById('s-ar').value.trim(),
+      name_english:    document.getElementById('s-en').value.trim(),
+      name_urdu:       document.getElementById('s-ur').value.trim(),
+      ayah_count:      parseInt(document.getElementById('s-count').value),
+      revelation_type: document.getElementById('s-rev').value,
+    };
+    if (!data.id || !data.name_arabic || !data.name_english) {
+      Toast.show('ID, Arabic name, and English name are required.', 'error'); return;
+    }
+    try {
+      await API.post('/ayah', { ...data, _sheet: 'Surahs' });
+      // Note: We write to Surahs via a direct sheet append
+      // Since Worker doesn't have a /surah POST endpoint yet, show guidance
+      Toast.show('Add this Surah directly to the Google Sheet for now.', 'error');
+    } catch(e) {
+      Toast.show('Use Google Sheet to add Surahs directly.', 'error');
+    }
   },
 
-  openAddRefModal() {
-    document.getElementById('ref-form-error').classList.remove('show');
-    ['rf-id','rf-slide','rf-label','rf-file-id','rf-page'].forEach(id=>document.getElementById(id).value='');
-    const sel=document.getElementById('rf-pres-id');
-    sel.innerHTML='<option value="">- Select -</option>'+this.allPres.map(p=>`<option value="${p.id}">${p.title}</option>`).join('');
-    document.getElementById('modal-add-ref').classList.add('open');
+  async saveAyah() {
+    const surahId = document.getElementById('t-surah').value;
+    const num     = parseInt(document.getElementById('t-num').value);
+    const arabic  = document.getElementById('t-arabic').value.trim();
+    const english = document.getElementById('t-english').value.trim();
+    const urdu    = document.getElementById('t-urdu').value.trim();
+
+    if (!surahId || !num || !arabic) {
+      Toast.show('Surah, number, and Arabic text are required.', 'error'); return;
+    }
+
+    const numStr = String(num).padStart(3, '0');
+    const surahNum = surahId.replace('surah_', '');
+    const ayahId = 'ayah_' + surahNum + '_' + numStr;
+
+    try {
+      await API.post('/ayah', { id: ayahId, surah_id: surahId, number: num, arabic_text: arabic, english_translation: english, urdu_translation: urdu });
+      Toast.show('Ayah saved!', 'success');
+      // Invalidate cache
+      delete _ayahsCache[surahId];
+      // Show tagging section
+      document.getElementById('tagging-section').style.display = 'block';
+      this._currentAyahId  = ayahId;
+      this._currentSurahId = surahId;
+      this.renderWordDisplay(arabic, ayahId, surahId);
+    } catch(e) {
+      Toast.show('Error: ' + e.message, 'error');
+    }
   },
 
-  closeModal(id) { document.getElementById(id).classList.remove('open'); },
-
-  async submitReference() {
-    // Note: reference writes go through the Apps Script web app
-    // This is just a placeholder — direct Sheet writes need the GAS admin panel
-    Toast.show('To add references, use the Apps Script Admin Panel.','error');
-    this.closeModal('modal-add-ref');
+  previewWords() {
+    const surahId = document.getElementById('t-surah').value;
+    const num     = parseInt(document.getElementById('t-num').value);
+    const arabic  = document.getElementById('t-arabic').value.trim();
+    if (arabic && surahId && num) {
+      document.getElementById('tagging-section').style.display = 'block';
+      const numStr  = String(num).padStart(3,'0');
+      const surahNum = surahId.replace('surah_','');
+      const ayahId  = 'ayah_' + surahNum + '_' + numStr;
+      this._currentAyahId  = ayahId;
+      this._currentSurahId = surahId;
+      this.renderWordDisplay(arabic, ayahId, surahId);
+    }
   },
 
-  _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  renderWordDisplay(arabicText, ayahId, surahId) {
+    const occs  = _occsCache[surahId] || [];
+    const ayahOccs = occs.filter(o => o.ayah_id === ayahId);
+
+    // Split Arabic text into words — split on spaces preserving diacritics
+    // Strip existing tags first
+    const cleanText = arabicText.replace(/\[\[(.+?)\|.+?\]\]/g, '$1');
+    const words = cleanText.trim().split(/\s+/);
+    this._words = words;
+
+    const display = document.getElementById('word-display');
+    display.innerHTML = words.map((word, i) => {
+      const pos = i + 1;
+      const occ = ayahOccs.find(o => o.word_position === pos);
+      return `<span class="word-token ${occ ? 'tagged' : ''}"
+        data-pos="${pos}" data-word="${esc(word)}"
+        onclick="Admin.selectWord(${pos}, '${esc(word)}')">${esc(word)}</span> `;
+    }).join('');
+
+    document.getElementById('root-picker-container').innerHTML = '';
+  },
+
+  selectWord(pos, word) {
+    // Deselect previous
+    document.querySelectorAll('.word-token').forEach(t => t.classList.remove('selected'));
+    const token = document.querySelector(`.word-token[data-pos="${pos}"]`);
+    if (token) token.classList.add('selected');
+    this._selectedPos  = pos;
+    this._selectedWord = word;
+    this.showRootPicker(pos, word);
+  },
+
+  showRootPicker(pos, word) {
+    const surahId = this._currentSurahId;
+    const roots   = _rootsCache[surahId] || [];
+    const occs    = _occsCache[surahId] || [];
+    const ayahId  = this._currentAyahId;
+    const existing = occs.find(o => o.ayah_id === ayahId && o.word_position === pos);
+
+    const container = document.getElementById('root-picker-container');
+    container.innerHTML = `
+      <div class="root-picker">
+        <h4>Tag word: <span style="font-family:var(--font-arabic);font-size:18px;direction:rtl;">${esc(word)}</span></h4>
+        <input type="text" class="root-search-input" id="root-search"
+          placeholder="Search existing roots..." oninput="Admin.filterRoots()">
+        <div class="existing-roots-list" id="roots-list">
+          ${this._renderRootsList(roots, [])}
+        </div>
+        ${existing ? `<div style="margin-bottom:12px;padding:8px 12px;background:var(--gold-light);border-radius:var(--r);font-size:12px;color:var(--gold-dark);">
+          ✓ Currently tagged as: <strong>${existing.root_id}</strong>
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="Admin.removeTag('${existing.id}')">Remove</button>
+        </div>` : ''}
+        <div class="new-root-form" id="new-root-form" style="display:none;">
+          <h5>+ Create New Root</h5>
+          <div class="field"><label>Root Letters *</label>
+            <input type="text" id="nr-letters" placeholder="أ-م-ن" style="direction:rtl;font-family:var(--font-arabic);font-size:20px;">
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>English Meaning *</label><input type="text" id="nr-en" placeholder="To believe"></div>
+            <div class="field"><label>Urdu Meaning</label><input type="text" id="nr-ur" placeholder="ایمان لانا" style="direction:rtl;font-family:var(--font-urdu);"></div>
+            <div class="field"><label>Verb Form</label><input type="text" id="nr-verb" placeholder="فَعَلَ" style="direction:rtl;font-family:var(--font-arabic);font-size:16px;"></div>
+            <div class="field"><label>Morphology</label><input type="text" id="nr-morph" placeholder="Verb Form I"></div>
+          </div>
+          <div class="field"><label>Notes</label><textarea id="nr-notes" placeholder="Analysis..."></textarea></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="Admin.createRootAndTag()">Create & Tag</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('new-root-form').style.display='none'">Cancel</button>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;"
+          onclick="document.getElementById('new-root-form').style.display='block'">+ Create new root word</button>
+      </div>`;
+
+    this._allRoots = roots;
+  },
+
+  _renderRootsList(roots, filtered) {
+    const list = filtered.length > 0 ? filtered : roots;
+    if (!list.length) return '<p style="font-size:12px;color:var(--text-3);padding:8px;">No roots defined yet for this Surah.</p>';
+    return list.map(r => `
+      <div class="root-item" onclick="Admin.tagWord('${r.id}')">
+        <div>
+          <div class="root-item-letters">${esc(r.root_letters)}</div>
+          <div class="root-item-meaning">${esc(r.meaning_english)}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`).join('');
+  },
+
+  filterRoots() {
+    const q = document.getElementById('root-search').value.toLowerCase();
+    const filtered = this._allRoots.filter(r =>
+      !q ||
+      r.root_letters.includes(q) ||
+      r.meaning_english.toLowerCase().includes(q) ||
+      (r.meaning_urdu||'').includes(q)
+    );
+    document.getElementById('roots-list').innerHTML = this._renderRootsList(this._allRoots, filtered);
+  },
+
+  async tagWord(rootId) {
+    const surahId = this._currentSurahId;
+    const ayahId  = this._currentAyahId;
+    const pos     = this._selectedPos;
+    const word    = this._selectedWord;
+    const surahNum = surahId.replace('surah_','');
+    const occId   = 'occ_' + surahNum + '_' + ayahId.split('_').pop() + '_' + String(pos).padStart(3,'0');
+
+    try {
+      await API.post('/occurrence', {
+        id: occId, ayah_id: ayahId, root_id: rootId,
+        surface_form: word, word_position: pos
+      });
+
+      // Refresh occs cache
+      const occs = await API.get('/occurrences?surahId=' + surahId);
+      _occsCache[surahId] = occs;
+
+      // Update arabic text with tag
+      const arabic = document.getElementById('t-arabic').value;
+      const words  = this._words;
+      words[pos - 1] = '[[' + word + '|' + rootId + ']]';
+      const newText = words.join(' ');
+      document.getElementById('t-arabic').value = newText;
+
+      // Save updated arabic text
+      await API.post('/ayah', {
+        id: ayahId, surah_id: surahId,
+        number: parseInt(ayahId.split('_').pop()),
+        arabic_text: newText
+      });
+
+      Toast.show('Tagged!', 'success');
+
+      // Re-render word display
+      this.renderWordDisplay(newText, ayahId, surahId);
+      document.getElementById('root-picker-container').innerHTML = '';
+
+    } catch(e) {
+      Toast.show('Error: ' + e.message, 'error');
+    }
+  },
+
+  async createRootAndTag() {
+    const surahId = this._currentSurahId;
+    const letters = document.getElementById('nr-letters').value.trim();
+    const en      = document.getElementById('nr-en').value.trim();
+    if (!letters || !en) { Toast.show('Root letters and English meaning required.', 'error'); return; }
+
+    const surahNum = surahId.replace('surah_','');
+    const existing = _rootsCache[surahId] || [];
+    const rootId   = 'root_' + surahNum + '_' + String(existing.length + 1).padStart(3,'0');
+
+    try {
+      await API.post('/root', {
+        id: rootId, surah_id: surahId,
+        root_letters: letters,
+        meaning_english: en,
+        meaning_urdu:    document.getElementById('nr-ur').value.trim(),
+        verb_form:       document.getElementById('nr-verb').value.trim(),
+        morphology:      document.getElementById('nr-morph').value.trim(),
+        notes:           document.getElementById('nr-notes').value.trim(),
+      });
+
+      // Refresh roots cache
+      const roots = await API.get('/roots?surahId=' + surahId);
+      _rootsCache[surahId] = roots;
+
+      Toast.show('Root created! Now tagging...', 'success');
+      await this.tagWord(rootId);
+
+    } catch(e) {
+      Toast.show('Error: ' + e.message, 'error');
+    }
+  },
+
+  async removeTag(occId) {
+    const surahId = this._currentSurahId;
+    try {
+      await API.del('/occurrence', { id: occId });
+      const occs = await API.get('/occurrences?surahId=' + surahId);
+      _occsCache[surahId] = occs;
+      Toast.show('Tag removed.', 'success');
+      this.renderWordDisplay(document.getElementById('t-arabic').value, this._currentAyahId, surahId);
+      document.getElementById('root-picker-container').innerHTML = '';
+    } catch(e) {
+      Toast.show('Error: ' + e.message, 'error');
+    }
+  },
+
+  async saveRoot() {
+    const surahId = document.getElementById('r-surah').value;
+    const id      = document.getElementById('r-id').value.trim();
+    const letters = document.getElementById('r-letters').value.trim();
+    const en      = document.getElementById('r-en').value.trim();
+    if (!surahId || !id || !letters || !en) {
+      Toast.show('Surah, ID, root letters, and English meaning are required.', 'error'); return;
+    }
+    try {
+      await API.post('/root', {
+        id, surah_id: surahId,
+        root_letters:    letters,
+        meaning_english: en,
+        meaning_urdu:    document.getElementById('r-ur').value.trim(),
+        verb_form:       document.getElementById('r-verb').value.trim(),
+        morphology:      document.getElementById('r-morph').value.trim(),
+        notes:           document.getElementById('r-notes').value.trim(),
+      });
+      delete _rootsCache[surahId];
+      Toast.show('Root word saved!', 'success');
+    } catch(e) {
+      Toast.show('Error: ' + e.message, 'error');
+    }
+  }
 };
 
+// ── HELPERS ──
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── BOOT ──
-window.addEventListener('load', () => Gallery.init());
+window.addEventListener('load', () => {
+  Router.go('surah', 'القرآن الكريم', false);
+  SurahList.init();
+});
 </script>
 </body>
 </html>
